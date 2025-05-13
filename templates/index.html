@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRC Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #timer {
+            font-size: 180px;
+            margin-bottom: 20px;
+        }
+        #teams {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            position: absolute;
+            bottom: 20px;
+        }
+        .team-box {
+            padding: 10px;
+            color: white;
+            font-weight: bold;
+            border-radius: 5px;
+            min-width: 60px;
+            text-align: center;
+        }
+        .red {
+            background-color: red;
+        }
+        .blue {
+            background-color: blue;
+        }
+        #alert {
+            display: none;
+            position: fixed;
+            top: 20px;
+            padding: 15px;
+            background-color: #ff4444;
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            border-radius: 5px;
+            animation: flash 1s infinite;
+        }
+        @keyframes flash {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="timer">00:00</div>
+    <div id="alert">Timer Ended!</div>
+    <div id="teams"></div>
+    <audio id="buzzer" src="/static/end.wav" preload="auto"></audio>
+    <script>
+        let hasBuzzerPlayed = false;
+        const urlParams = new URLSearchParams(window.location.search);
+        const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function showAlert() {
+            const alert = document.getElementById('alert');
+            alert.style.display = 'block';
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 5000); // Hide after 5 seconds
+        }
+
+        function updateTimer() {
+            fetch('/timer_status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Timer status:', data);  // Debug log
+                    document.getElementById('timer').textContent = formatTime(data.remaining);
+                    if (data.buzzer && !hasBuzzerPlayed) {
+                        const buzzer = document.getElementById('buzzer');
+                        console.log('Audio readyState:', buzzer.readyState);  // Debug log
+                        console.log('Attempting to play end.wav');  // Debug log
+                        buzzer.play().then(() => {
+                            console.log('end.wav played successfully');
+                            hasBuzzerPlayed = true;
+                        }).catch(error => {
+                            console.error('end.wav playback failed:', error);
+                            console.log('Showing visual alert due to autoplay restriction. To test audio, click the page and run: document.getElementById("buzzer").play(); in the console.');
+                            showAlert();
+                            hasBuzzerPlayed = true; // Prevent repeated attempts
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch timer_status failed:', error);
+                });
+        }
+
+        function updateTeams() {
+            fetch('/teams')
+                .then(response => response.json())
+                .then(data => {
+                    const teamsDiv = document.getElementById('teams');
+                    teamsDiv.innerHTML = '';
+                    // Sort teams: always red first, then blue
+                    const sortedStations = Object.keys(data).sort((a, b) => {
+                        const aIsRed = a.startsWith('red');
+                        const bIsRed = b.startsWith('red');
+                        return aIsRed && !bIsRed ? -1 : !aIsRed && bIsRed ? 1 : 0;
+                    });
+                    sortedStations.forEach(station => {
+                        const team = data[station];
+                        if (team) {
+                            const box = document.createElement('div');
+                            const colorClass = isReversed
+                                ? station.startsWith('red') ? 'blue' : 'red'
+                                : station.startsWith('red') ? 'red' : 'blue';
+                            box.className = `team-box ${colorClass}`;
+                            box.textContent = team;
+                            teamsDiv.appendChild(box);
+                        }
+                    });
+                });
+        }
+
+        // Update timer and teams every second
+        setInterval(() => {
+            updateTimer();
+            updateTeams();
+        }, 1000);
+
+        // Initialize
+        updateTimer();
+        updateTeams();
+    </script>
+</body>
+</html>

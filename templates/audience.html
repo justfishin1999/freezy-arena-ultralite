@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FRC Timer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #00FF00; /* Chroma key green */
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    #bottom-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      padding: 20px 40px;
+      margin-bottom: 40px;
+      background-color: white;
+      border-radius: 20px;
+      box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+      max-width: 90vw;
+    }
+
+    #timer {
+      font-size: 48px;
+      font-weight: bold;
+      color: black;
+    }
+
+    #teams {
+      display: flex;
+      gap: 10px;
+    }
+
+    .team-box {
+      padding: 10px 20px;
+      font-size: 48px;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    .red {
+      background-color: red;
+    }
+
+    .blue {
+      background-color: blue;
+    }
+
+    #alert {
+      display: none;
+      position: fixed;
+      top: 20px;
+      padding: 15px;
+      background-color: #ff4444;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 5px;
+      animation: flash 1s infinite;
+    }
+
+    @keyframes flash {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="alert">Timer Ended!</div>
+  <div id="bottom-container">
+    <div id="timer">00:00</div>
+    <div id="teams"></div>
+  </div>
+  <audio id="buzzer" src="/static/end.wav" preload="auto"></audio>
+
+  <script>
+    let hasBuzzerPlayed = false;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function showAlert() {
+      const alert = document.getElementById('alert');
+      alert.style.display = 'block';
+      setTimeout(() => {
+        alert.style.display = 'none';
+      }, 5000);
+    }
+
+    function updateTimer() {
+      fetch('/timer_status')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('timer').textContent = formatTime(data.remaining);
+          if (data.buzzer && !hasBuzzerPlayed) {
+            const buzzer = document.getElementById('buzzer');
+            buzzer.play().catch(error => {
+              console.error('end.wav playback failed:', error);
+              showAlert();
+            });
+            hasBuzzerPlayed = true;
+          }
+        })
+        .catch(error => console.error('Fetch timer_status failed:', error));
+    }
+
+    function updateTeams() {
+      fetch('/teams')
+        .then(response => response.json())
+        .then(data => {
+          const teamsDiv = document.getElementById('teams');
+          teamsDiv.innerHTML = '';
+          const sortedStations = Object.keys(data).sort((a, b) => {
+            const aIsRed = a.startsWith('red');
+            const bIsRed = b.startsWith('red');
+            return aIsRed && !bIsRed ? -1 : !aIsRed && bIsRed ? 1 : 0;
+          });
+          sortedStations.forEach(station => {
+            const team = data[station];
+            if (team) {
+              const box = document.createElement('div');
+              const colorClass = isReversed
+                ? station.startsWith('red') ? 'blue' : 'red'
+                : station.startsWith('red') ? 'red' : 'blue';
+              box.className = `team-box ${colorClass}`;
+              box.textContent = team;
+              teamsDiv.appendChild(box);
+            }
+          });
+        });
+    }
+
+    setInterval(() => {
+      updateTimer();
+      updateTeams();
+    }, 1000);
+
+    updateTimer();
+    updateTeams();
+  </script>
+</body>
+</html>
