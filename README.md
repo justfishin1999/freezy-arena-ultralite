@@ -55,5 +55,6 @@ A super basic **Field Management System (FMS)** designed for **practice** and **
 3. **Open an elevated Command Prompt** (right-click → "Run as Administrator")
 4. **Navigate to the project directory**: 'cd c:\freezy-ultralite'
 5. **Start the FMS**: python freezy-ultralite.py
+6. **Browse to the admin page**: http://localhost:5000
 > ✅ If Python was not added to your system PATH during installation, you may need to use the full path to `python.exe` (e.g., `C:\Python312\python.exe freezy-ultralite.py`)
 
