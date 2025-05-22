@@ -3,7 +3,7 @@ import io
 import json
 import secrets
 import string
-import telnetlib
+import telnetlib3
 import time
 import threading
 import requests
