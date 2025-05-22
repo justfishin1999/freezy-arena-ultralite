@@ -2,150 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FRC Timer</title>
+    <title>Freezy Arena - Practice FMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
+        body { background-color: #f8f9fa; padding-top: 20px; }
+        .container { max-width: 800px; }
+        .log-box { background: #fff; padding: 10px; border: 1px solid #ccc; height: 200px; overflow-y: auto; }
+        .form-label { font-weight: 500; }
+        .status-circle {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        width: 28px;
+        height: 28px;
+        font-size: 1.2rem;
+        border-radius: 50%;
+        color: rgb(0, 0, 0);
+        margin-right: 8px;
         }
-        #timer {
-            font-size: 180px;
-            margin-bottom: 20px;
-        }
-        #teams {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            position: absolute;
-            bottom: 20px;
-        }
-        .team-box {
-            padding: 10px;
-            color: white;
-            font-weight: bold;
-            border-radius: 5px;
-            min-width: 60px;
-            text-align: center;
-        }
-        .red {
-            background-color: red;
-        }
-        .blue {
-            background-color: blue;
-        }
-        #alert {
-            display: none;
-            position: fixed;
-            top: 20px;
-            padding: 15px;
-            background-color: #ff4444;
-            color: white;
-            font-size: 48px;
-            font-weight: bold;
-            border-radius: 5px;
-            animation: flash 1s infinite;
-        }
-        @keyframes flash {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        .bg-secondary { background-color: gray; }
+        .bg-success   { background-color: green; }
+        .bg-danger    { background-color: red; }
     </style>
 </head>
 <body>
-    <div id="timer">00:00</div>
-    <div id="alert">Timer Ended!</div>
-    <div id="teams"></div>
-    <audio id="buzzer" src="/static/end.wav" preload="auto"></audio>
-    <script>
-        let hasBuzzerPlayed = false;
-        const urlParams = new URLSearchParams(window.location.search);
-        const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+    <div class="container">
+        <h1 class="mb-4">Freezy Arena Practice FMS</h1>
 
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        }
+        <div class="mb-4">
+            <h5>Import WPA Key CSV</h5>
+            <form id="csvForm" enctype="multipart/form-data" class="d-flex gap-2">
+                <input class="form-control" type="file" name="file" required />
+                <button class="btn btn-primary" type="submit">Import</button>
+            </form>
+        </div>
 
-        function showAlert() {
-            const alert = document.getElementById('alert');
-            alert.style.display = 'block';
-            setTimeout(() => {
-                alert.style.display = 'none';
-            }, 5000); // Hide after 5 seconds
-        }
+        <div class="mb-4">
+            <h5>Generate WPA Keys</h5>
+            <label class="form-label">Team List (comma-separated):</label>
+            <div class="d-flex gap-2">
+                <input id="teamListInput" type="text" class="form-control" />
+                <button id="generateKeys" class="btn btn-secondary">Generate</button>
+            </div>
+        </div>
 
-        function updateTimer() {
-            fetch('/timer_status')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Timer status:', data);  // Debug log
-                    document.getElementById('timer').textContent = formatTime(data.remaining);
-                    if (data.buzzer && !hasBuzzerPlayed) {
-                        const buzzer = document.getElementById('buzzer');
-                        console.log('Audio readyState:', buzzer.readyState);  // Debug log
-                        console.log('Attempting to play end.wav');  // Debug log
-                        buzzer.play().then(() => {
-                            console.log('end.wav played successfully');
-                            hasBuzzerPlayed = true;
-                        }).catch(error => {
-                            console.error('end.wav playback failed:', error);
-                            console.log('Showing visual alert due to autoplay restriction. To test audio, click the page and run: document.getElementById("buzzer").play(); in the console.');
-                            showAlert();
-                            hasBuzzerPlayed = true; // Prevent repeated attempts
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch timer_status failed:', error);
-                });
-        }
+        <div class="mb-3 d-flex align-items-center">
+            <span id="wpaStatusBadge" class="badge rounded-circle bg-secondary d-inline-flex justify-content-center align-items-center text-black" 
+                  style="width: 32px; height: 32px; font-size: 1.2rem;">
+              ?
+            </span>
+            <span class="ms-2 fw-medium">WPA Keys Imported/Generated</span>
+        </div>                                
 
-        function updateTeams() {
-            fetch('/teams')
-                .then(response => response.json())
-                .then(data => {
-                    const teamsDiv = document.getElementById('teams');
-                    teamsDiv.innerHTML = '';
-                    // Sort teams: always red first, then blue
-                    const sortedStations = Object.keys(data).sort((a, b) => {
-                        const aIsRed = a.startsWith('red');
-                        const bIsRed = b.startsWith('red');
-                        return aIsRed && !bIsRed ? -1 : !aIsRed && bIsRed ? 1 : 0;
-                    });
-                    sortedStations.forEach(station => {
-                        const team = data[station];
-                        if (team) {
-                            const box = document.createElement('div');
-                            const colorClass = isReversed
-                                ? station.startsWith('red') ? 'blue' : 'red'
-                                : station.startsWith('red') ? 'red' : 'blue';
-                            box.className = `team-box ${colorClass}`;
-                            box.textContent = team;
-                            teamsDiv.appendChild(box);
-                        }
-                    });
-                });
-        }
+        <form id="configForm" class="mb-4">
+            <h5>Station Assignments</h5>
+            <div class="row">
+                {% for station in stations %}
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">{{ station.upper() }}</label>
+                    <input name="{{ station }}" type="text" class="form-control" />
+                </div>
+                {% endfor %}
+            </div>
+        </form>
+        
+        <div class="mb-4 d-flex flex-wrap gap-2">
+            <button id="pushConfig" class="btn btn-success">Push Configuration</button>
+            <button id="updateDisplay" class="btn btn-info">Update Display</button>
+            <button id="clearSwitch" class="btn btn-warning">Clear Switch Config</button>
+        </div>
+        
 
-        // Update timer and teams every second
-        setInterval(() => {
-            updateTimer();
-            updateTeams();
-        }, 1000);
+        <div class="mb-4">
+            <h5>Start Match Timer</h5>
+            <div class="d-flex gap-2">
+                <input id="timerInput" class="form-control" type="number" min="1" placeholder="Minutes" />
+                <button id="startTimer" class="btn btn-dark">Start Timer</button>
+            </div>
+        </div>
 
-        // Initialize
-        updateTimer();
-        updateTeams();
-    </script>
+        <div class="mb-3">
+            <h5>Logs</h5>
+            <div id="logDisplay" class="log-box"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>
