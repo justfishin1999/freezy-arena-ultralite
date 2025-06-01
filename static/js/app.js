@@ -81,7 +81,7 @@ $(function () {
     $('#startTimer').on('click', () => {
         let minutes = $('#timerInput').val();
         $.post('/start_timer', { minutes })
-            .done(() => log('Timer started.'))
+            .done(() => log(minutes + ' minute timer started.'))
             .fail(() => log('Failed to start timer.'));
     });
 
@@ -116,4 +116,23 @@ function checkWpaKeyStatus() {
             badge.classList.add('bg-danger');
         });
 }
+
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+
+function updateTimer() {
+    fetch('/timer_status')
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('timer').textContent = formatTime(data.remaining);
+    })
+}
+    updateTimer();
+    setInterval(() => {
+      updateTimer();
+    }, 1000);
  

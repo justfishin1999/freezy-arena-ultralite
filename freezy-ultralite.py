@@ -10,7 +10,7 @@ import requests
 from flask import Flask, make_response, render_template, request, jsonify
 
 # Configuration
-AP_IP = "10.0.100.2"
+AP_IP = "10.121.50.163"
 SWITCH_IP = "10.0.100.3"
 SWITCH_PASSWORD = "1234Five"
 FLASK_PORT = 5000
@@ -116,6 +116,7 @@ def push_config():
     try:
         push_ap_configuration(stations)
         configure_switch(switch_entries)
+        update_display()
         log("Configuration pushed.")
         return jsonify({"status": "success"})
     except Exception as e:
@@ -140,7 +141,7 @@ def start_timer():
         timer_start_time = time.time()
         timer_running = True
         buzzer_triggered = False
-        log("Timer started.")
+        log(timer_duration+" minute timer started.")
         return jsonify({"status": "started"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
@@ -173,7 +174,7 @@ def push_ap_configuration(stations):
         raise Exception(f"Access point returned status {response.status_code}: {response.text}")
 
 def configure_switch(teams):
-    tn = telnetlib.Telnet(SWITCH_IP, 23, timeout=5)
+    tn = telnetlib3.Telnet(SWITCH_IP, 23, timeout=5)
     tn.read_until(b"Password: ")
     tn.write(SWITCH_PASSWORD.encode("ascii") + b"\n")
     tn.write(b"enable\n" + SWITCH_PASSWORD.encode("ascii") + b"\n")
@@ -201,7 +202,7 @@ interface Vlan{vlan}
     tn.read_all().decode()
 
 def clear_switch_config():
-    tn = telnetlib.Telnet(SWITCH_IP, 23, timeout=5)
+    tn = telnetlib3.Telnet(SWITCH_IP, 23, timeout=5)
     tn.read_until(b"Password: ")
     tn.write(SWITCH_PASSWORD.encode("ascii") + b"\n")
     tn.write(b"enable\n" + SWITCH_PASSWORD.encode("ascii") + b"\n")

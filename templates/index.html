@@ -1,93 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Freezy Arena - Ultralite</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f8f9fa; padding-top: 20px; }
-        .container { max-width: 800px; }
-        .log-box { background: #fff; padding: 10px; border: 1px solid #ccc; height: 200px; overflow-y: auto; }
-        .form-label { font-weight: 500; }
-        .status-circle {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        width: 28px;
-        height: 28px;
-        font-size: 1.2rem;
-        border-radius: 50%;
-        color: rgb(0, 0, 0);
-        margin-right: 8px;
-        }
-        .bg-secondary { background-color: gray; }
-        .bg-success   { background-color: green; }
-        .bg-danger    { background-color: red; }
-    </style>
+  <meta charset="UTF-8">
+  <title>Freezy Arena Ultralite</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    body {
+      background-color: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar-brand {
+      font-weight: 600;
+      font-size: 1.5rem;
+    }
+    .card {
+      border: none;
+      border-radius: 0.75rem;
+    }
+    .card-header {
+      background-color: #fff;
+      border-bottom: none;
+      font-weight: 500;
+      font-size: 1.2rem;
+    }
+    .card-body {
+      background-color: #fff;
+    }
+    .form-label {
+      font-weight: 500;
+    }
+    .btn-rounded {
+      border-radius: 2rem;
+    }
+    .status-circle {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      border-radius: 50%;
+      color: #fff;
+      margin-right: 8px;
+    }
+    .bg-secondary {
+      background-color: #6c757d !important;
+    }
+    .bg-success {
+      background-color: #28a745 !important;
+    }
+    .bg-danger {
+      background-color: #dc3545 !important;
+    }
+    .log-box {
+      background: #ffffff;
+      padding: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    footer {
+      background-color: #fff;
+      padding: 1rem 0;
+      margin-top: auto;
+      border-top: 1px solid #dee2e6;
+    }
+  </style>
 </head>
 <body>
+  <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
-        <h1 class="mb-4">Freezy Arena Ultralite</h1>
+      <a class="navbar-brand" href="/">Freezy Arena</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-        <div class="mb-4">
-            <h5>Import WPA Key CSV</h5>
-            <form id="csvForm" enctype="multipart/form-data" class="d-flex gap-2">
-                <input class="form-control" type="file" name="file" required />
-                <button class="btn btn-primary" type="submit">Import</button>
-            </form>
-        </div>
-
-        <div class="mb-4">
-            <h5>Generate WPA Keys</h5>
-            <label class="form-label">Team List (comma-separated):</label>
-            <div class="d-flex gap-2">
-                <input id="teamListInput" type="text" class="form-control" />
-                <button id="generateKeys" class="btn btn-secondary">Generate</button>
-            </div>
-        </div>
-
-        <div class="mb-3 d-flex align-items-center">
-            <span id="wpaStatusBadge" class="badge rounded-circle bg-secondary d-inline-flex justify-content-center align-items-center text-black" 
-                  style="width: 32px; height: 32px; font-size: 1.2rem;">
-              ?
-            </span>
-            <span class="ms-2 fw-medium">WPA Keys Imported/Generated</span>
-        </div>                                
-
-        <form id="configForm" class="mb-4">
-            <h5>Station Assignments</h5>
-            <div class="row">
-                {% for station in stations %}
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">{{ station.upper() }}</label>
-                    <input name="{{ station }}" type="text" class="form-control" />
-                </div>
-                {% endfor %}
-            </div>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Displays
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/audience">Audience Display</a></li>
+              <li><a class="dropdown-item" href="/wall">Wall Display</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+  <!-- ========== MAIN CONTAINER ========== -->
+  <div class="container mb-4">
+    <br>
+    <!-- Import WPA Key CSV Card -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">Import WPA Key CSV</div>
+      <div class="card-body">
+        <form id="csvForm" enctype="multipart/form-data" class="row g-2 align-items-end">
+          <div class="col-md-10">
+            <label for="csvFile" class="form-label">Choose CSV File:</label>
+            <input
+              id="csvFile"
+              class="form-control"
+              type="file"
+              name="file"
+              accept=".csv"
+              required
+            />
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-primary btn-rounded" type="submit">
+              Import
+            </button>
+          </div>
         </form>
-        
-        <div class="mb-4 d-flex flex-wrap gap-2">
-            <button id="pushConfig" class="btn btn-success">Push Configuration</button>
-            <button id="updateDisplay" class="btn btn-info">Update Display</button>
-            <button id="clearSwitch" class="btn btn-warning">Clear Switch Config</button>
-        </div>
-        
-
-        <div class="mb-4">
-            <h5>Start Match Timer</h5>
-            <div class="d-flex gap-2">
-                <input id="timerInput" class="form-control" type="number" min="1" placeholder="Minutes" />
-                <button id="startTimer" class="btn btn-dark">Start Timer</button>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <h5>Logs</h5>
-            <div id="logDisplay" class="log-box"></div>
-        </div>
+      </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="/static/js/app.js"></script>
+    <!-- Generate WPA Keys Card -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">Generate WPA Keys</div>
+      <div class="card-body">
+        <div class="mb-2">
+          <label for="teamListInput" class="form-label">Team List (comma-separated):</label>
+          <input
+            id="teamListInput"
+            type="text"
+            class="form-control"
+            placeholder="e.g. 2052, 2847, 3058"
+          />
+        </div>
+        <div class="d-grid">
+          <button id="generateKeys" class="btn btn-secondary btn-rounded" type="button">
+            Generate CSV
+          </button>
+        </div>
+        <div class="mt-3 d-flex align-items-center">
+          <div
+            id="wpaStatusBadge"
+            class="status-circle bg-secondary"
+            title="WPA Keys Status"
+          >
+            ?
+          </div>
+          <span class="fw-medium">WPA Keys Imported/Generated</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Station Assignments Card -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">Station Assignments</div>
+      <div class="card-body">
+        <form id="configForm" class="row g-3">
+          {% for station in stations %}
+          <div class="col-md-4">
+            <label for="{{ station }}" class="form-label">{{ station.upper() }}</label>
+            <input
+              id="{{ station }}"
+              name="{{ station }}"
+              type="text"
+              class="form-control"
+              placeholder="Team Number"
+            />
+          </div>
+          {% endfor %}
+
+          <div class="col-12 d-flex flex-wrap gap-2 mt-3">
+            <button type="submit" class="btn btn-success btn-rounded">
+              Push Configuration
+            </button>
+            <button id="updateDisplay" type="button" class="btn btn-info btn-rounded">
+              Update Display
+            </button>
+            <button id="clearSwitch" type="button" class="btn btn-warning btn-rounded">
+              Clear Switch Config
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Start Match Timer Card -->
+    <div class="card mb-4 shadow-sm">
+    <div class="card-header">Start Match Timer</div>
+    <div class="card-body">
+        <div class="d-flex align-items-center g-3">
+        <!-- Smaller Duration Input -->
+        <div class="me-2">
+            <label for="timerInput" class="form-label visually-hidden">Minutes</label>
+            <input
+            id="timerInput"
+            name="minutes"
+            type="number"
+            class="form-control form-control-sm"
+            style="width: 10rem;"
+            min="1"
+            max="999"
+            placeholder="Min"
+            required
+            />
+        </div>
+
+        <!-- Start Button -->
+        <div class="me-4">
+            <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
+            Start
+            </button>
+        </div>
+
+        <!-- Inline Timer Display -->
+        <div>
+            <span class="card-header">Time Remaining</span>
+            <span id="timer" class="h3 fw-bold border rounded px-2 py-1">00:00</span>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- Logs Card -->
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">Logs</div>
+      <div class="card-body">
+        <div id="logDisplay" class="log-box"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="text-center">
+    <div class="container">
+      <span class="text-muted">© <a href="https://github.com/justfishin1999">github.com/justfishin1999</a> - 2025 - Freezy Arena Ultralite - v2025.0.1</span>
+    </div>
+  </footer>
+
+  <!-- Bootstrap & jQuery Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  ></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>
