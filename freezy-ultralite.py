@@ -10,7 +10,7 @@ import requests
 from flask import Flask, make_response, render_template, request, jsonify
 
 # Configuration
-AP_IP = "10.121.50.163"
+AP_IP = "10.0.100.2"
 SWITCH_IP = "10.0.100.3"
 SWITCH_PASSWORD = "1234Five"
 FLASK_PORT = 5000
