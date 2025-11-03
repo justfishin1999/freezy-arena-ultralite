@@ -7,6 +7,8 @@ import telnetlib3
 import time
 import threading
 import requests
+import subprocess
+import platform
 from flask import Flask, make_response, render_template, request, jsonify
 
 # Configuration
@@ -114,10 +116,19 @@ def push_config():
             switch_entries[station] = int(team)
 
     try:
-        push_ap_configuration(stations)
-        configure_switch(switch_entries)
+        #check if AP is reachable, skip if not
+        if check_host(AP_IP):
+            push_ap_configuration(stations)
+            log("AP configuration pushed.")
+        else:
+            log("No AP found at 10.0.100.2 - skipping command...")
+        #check if switch is reachable, skip if not
+        if check_host(SWITCH_IP):
+            configure_switch(switch_entries)
+            log("Switch configuration pushed.")
+        else:
+            log("No Switch found at 10.0.100.3 - skipping command...")
         update_display()
-        log("Configuration pushed.")
         return jsonify({"status": "success"})
     except Exception as e:
         log(f"Push config error: {e}")
@@ -126,7 +137,10 @@ def push_config():
 @app.route('/clear_switch', methods=['POST'])
 def clear_switch():
     try:
-        clear_switch_config()
+        if check_host(SWITCH_IP):
+            clear_switch_config()
+        else:
+            log(f"Couldn't find the switch at 10.0.100.3 - skipping command...")            
         return jsonify({"status": "success"})
     except Exception as e:
         log(f"Clear switch error: {e}")
@@ -217,6 +231,15 @@ no ip dhcp pool dhcp{vlan}
 """.encode())
     tn.write(b"end\ncopy running-config startup-config\n\nexit\n")
     tn.read_all().decode()
+
+def check_host(host):
+    param = '-n' if platform.system().lower() == 'windows' else '-c'
+    command = ['ping', param, '1', host] #send one ping
+    result = subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if result == 0:
+            return True
+    else:
+            return False
 
 @app.route('/wpa_key_status')
 def wpa_key_status():
