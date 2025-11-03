@@ -1,5 +1,7 @@
 # 🛠️ Freezy Arena 'Ultralite'
 
+**Currently Under Construction** - a mainstream beta release is coming soon.
+
 A super basic **Field Management System (FMS)** designed for **practice** and **offseason** events using the **VH-113 Field Radio**. This tool simplifies VLAN and network setup for FRC-style events **without full FMS control**, giving drivers complete authority over their robots at all times.
 
 ---
