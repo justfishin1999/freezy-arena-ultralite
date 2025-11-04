@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Freezy Arena - Timer</title>
+  <title>Freezy Arena Ultralite - Audience</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -49,13 +49,8 @@
       text-align: center;
     }
 
-    .red {
-      background-color: red;
-    }
-
-    .blue {
-      background-color: blue;
-    }
+    .red { background-color: red; }
+    .blue { background-color: blue; }
 
     #alert {
       display: none;
@@ -88,7 +83,21 @@
   <script>
     let hasBuzzerPlayed = false;
     const urlParams = new URLSearchParams(window.location.search);
-    const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+    let isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+
+    // unlock audio on first click so the buzzer can play
+    function unlockAudio() {
+      const buzzer = document.getElementById('buzzer');
+      if (!buzzer) return;
+      buzzer.play().then(() => {
+        buzzer.pause();
+        buzzer.currentTime = 0;
+        window.removeEventListener('click', unlockAudio);
+      }).catch(() => {
+        // try again on next click
+      });
+    }
+    window.addEventListener('click', unlockAudio);
 
     function formatTime(seconds) {
       const minutes = Math.floor(seconds / 60);
@@ -104,21 +113,8 @@
       }, 5000);
     }
 
-    // render timer from SSE or fallback
     function renderTimer(seconds) {
       document.getElementById('timer').textContent = formatTime(seconds);
-    }
-
-    // fallback polling for timer if SSE fails
-    async function pollTimerOnce() {
-      try {
-        const res = await fetch('/timer_status');
-        const data = await res.json();
-        renderTimer(data.remaining || 0);
-        handleBuzzer(data);
-      } catch (e) {
-        console.error('Fetch timer_status failed:', e);
-      }
     }
 
     function handleBuzzer(data) {
@@ -132,11 +128,10 @@
       }
     }
 
-    // SSE for timer
-    function initTimerSSE() {
+    // SSE for timer: no fallback to /timer_status, just keep retrying
+    function initTimerSSE(retryDelayMs = 1500) {
       if (!window.EventSource) {
-        // no SSE, just poll every second
-        setInterval(pollTimerOnce, 1000);
+        console.error('This browser does not support EventSource, and fallback is disabled.');
         return;
       }
 
@@ -147,16 +142,16 @@
           const data = JSON.parse(event.data);
           const remaining = Math.floor(data.remaining || 0);
           renderTimer(remaining);
-          // if you add buzzer to SSE payload later, handle here
+          handleBuzzer(data);
         } catch (e) {
           console.error('Bad SSE timer data:', e);
         }
       };
 
       es.onerror = () => {
-        console.warn('SSE failed, falling back to polling.');
+        console.warn('SSE connection lost. Retrying...');
         es.close();
-        setInterval(pollTimerOnce, 1000);
+        setTimeout(() => initTimerSSE(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
       };
     }
 
@@ -190,9 +185,15 @@
     // start everything
     initTimerSSE();
     updateTeams();
-
-    // teams don’t need 1s — do 3s or 5s
     setInterval(updateTeams, 5000);
+
+    // Toggle reversed on double click anywhere
+    document.addEventListener('dblclick', function() {
+      isReversed = !isReversed;
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('reversed', isReversed.toString());
+      window.location.href = newUrl.toString();
+    });
   </script>
 </body>
 </html>

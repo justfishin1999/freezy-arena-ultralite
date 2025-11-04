@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Freezy Arena - Wall Timer</title>
+  <title>Freezy Arena Ultralite - Wall Timer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -49,13 +49,8 @@
       text-align: center;
     }
 
-    .red {
-      background-color: red;
-    }
-
-    .blue {
-      background-color: blue;
-    }
+    .red { background-color: red; }
+    .blue { background-color: blue; }
 
     #alert {
       display: none;
@@ -90,6 +85,20 @@
     const urlParams = new URLSearchParams(window.location.search);
     const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
 
+    // unlock audio on first click so timer buzz can play
+    function unlockAudio() {
+      const buzzer = document.getElementById('buzzer');
+      if (!buzzer) return;
+      buzzer.play().then(() => {
+        buzzer.pause();
+        buzzer.currentTime = 0;
+        window.removeEventListener('click', unlockAudio);
+      }).catch(() => {
+        // try again on next click
+      });
+    }
+    window.addEventListener('click', unlockAudio);
+
     function formatTime(seconds) {
       const minutes = Math.floor(seconds / 60);
       const secs = Math.floor(seconds % 60);
@@ -119,23 +128,10 @@
       }
     }
 
-    // fallback polling for timer
-    async function pollTimerOnce() {
-      try {
-        const res = await fetch('/timer_status');
-        const data = await res.json();
-        renderTimer(data.remaining || 0);
-        handleBuzzer(data);
-      } catch (e) {
-        console.error('Fetch /timer_status failed:', e);
-      }
-    }
-
-    // SSE for timer
-    function initTimerSSE() {
+    // SSE for timer: no fallback, just retry
+    function initTimerSSE(retryDelayMs = 1500) {
       if (!window.EventSource) {
-        // no SSE support; poll every second
-        setInterval(pollTimerOnce, 1000);
+        console.error('EventSource not supported and fallback disabled.');
         return;
       }
 
@@ -146,16 +142,19 @@
           const data = JSON.parse(event.data);
           const remaining = Math.floor(data.remaining || 0);
           renderTimer(remaining);
-          // If/when you add buzzer to SSE payload, call handleBuzzer(data) here
+          handleBuzzer(data);
         } catch (err) {
           console.error('Bad SSE data:', err);
         }
       };
 
       es.onerror = () => {
-        console.warn('SSE failed, falling back to polling.');
+        console.warn('SSE failed, retrying...');
         es.close();
-        setInterval(pollTimerOnce, 1000);
+        setTimeout(() => {
+          // exponential-ish backoff, up to 10s
+          initTimerSSE(Math.min(retryDelayMs * 2, 10000));
+        }, retryDelayMs);
       };
     }
 
@@ -189,7 +188,6 @@
     // start
     initTimerSSE();
     updateTeams();
-    // teams don’t change every second, 5s is fine
     setInterval(updateTeams, 5000);
   </script>
 </body>

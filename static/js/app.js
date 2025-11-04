@@ -70,29 +70,6 @@ $(function () {
     }
 
     // =========================
-    // WPA REMOVE SINGLE (config page)
-    // =========================
-    const $removeWpaKeyBtn = $('#removeWpaKeyBtn');
-    if ($removeWpaKeyBtn.length) {
-        $removeWpaKeyBtn.on('click', async () => {
-            const team = $('#removeWpaTeam').val().trim();
-            if (!team) return;
-            try {
-                const formData = new FormData();
-                formData.append('team', team);
-                await fetch('/remove_wpa_key', {
-                    method: 'POST',
-                    body: formData
-                });
-            } catch (e) {
-                // backend logs
-            }
-            await checkWpaKeyStatus();
-            await refreshLogDisplay();
-        });
-    }
-
-    // =========================
     // WPA CLEAR ALL (config page)
     // =========================
     const $clearAllWpaBtn = $('#clearAllWpaBtn');
@@ -181,9 +158,9 @@ $(function () {
     const $startTimer = $('#startTimer');
     if ($startTimer.length) {
         $startTimer.on('click', async () => {
-            const minutes = $('#timerInput').val();
+            const seconds = $('#timerInput').val();
             try {
-                await $.post('/start_timer', { minutes });
+                await $.post('/start_timer', { seconds });
             } catch (e) {
                 // server logs
             }

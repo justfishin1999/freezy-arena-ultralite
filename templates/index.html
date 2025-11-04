@@ -106,8 +106,8 @@
             Displays
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
-            <li><a class="dropdown-item" href="/audience">Audience Display</a></li>
-            <li><a class="dropdown-item" href="/wall">Wall Display</a></li>
+            <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
+            <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
           </ul>
         </li>
         <li class="nav-item">
@@ -163,16 +163,16 @@
         <div class="d-flex align-items-center g-3">
         <!-- Smaller Duration Input -->
         <div class="me-2">
-            <label for="timerInput" class="form-label visually-hidden">Minutes</label>
+            <label for="timerInput" class="form-label visually-hidden">Seconds</label>
             <input
             id="timerInput"
-            name="minutes"
+            name="seconds"
             type="number"
             class="form-control form-control-sm"
             style="width: 10rem;"
             min="1"
-            max="999"
-            placeholder="Min"
+            max="9999"
+            placeholder="Seconds"
             required
             />
         </div>
