@@ -278,16 +278,6 @@ function formatTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// fallback: pull timer status from backend and update display
-async function updateTimer() {
-    try {
-        const res = await fetch('/timer_status');
-        const data = await res.json();
-        renderTimer(data.remaining || 0);
-    } catch (e) {
-        renderTimer(null);
-    }
-}
 
 // render timer value
 function renderTimer(seconds) {

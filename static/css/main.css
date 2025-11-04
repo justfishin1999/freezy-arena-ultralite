@@ -1,0 +1,65 @@
+body {
+      background-color: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar-brand {
+      font-weight: 600;
+      font-size: 1.5rem;
+    }
+    .card {
+      border: none;
+      border-radius: 0.75rem;
+    }
+    .card-header {
+      background-color: #fff;
+      border-bottom: none;
+      font-weight: 500;
+      font-size: 1.2rem;
+    }
+    .card-body {
+      background-color: #fff;
+    }
+    .form-label {
+      font-weight: 500;
+    }
+    .btn-rounded {
+      border-radius: 2rem;
+    }
+    .status-circle {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      border-radius: 50%;
+      color: #fff;
+      margin-right: 8px;
+    }
+    .bg-secondary {
+      background-color: #6c757d !important;
+    }
+    .bg-success {
+      background-color: #28a745 !important;
+    }
+    .bg-danger {
+      background-color: #dc3545 !important;
+    }
+    .log-box {
+      background: #ffffff;
+      padding: 1rem;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    footer {
+      background-color: #fff;
+      padding: 1rem 0;
+      margin-top: auto;
+      border-top: 1px solid #dee2e6;
+    }
