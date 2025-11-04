@@ -35,7 +35,7 @@ A super basic **Field Management System (FMS)** designed for **practice** and **
 - 📡 **Configure Vivid Hosting VH-113 radio** (advanced FMS-style networking).
 - 🖥️ **Audience Display**  
   Shows current match time and teams on the field.  
-  Add `?reversed=true` or `?reversed=false` to the URL to flip layout.
+  Double click on the chroma or background to reverse red and blue.
 
 - 🧱 **Wall Display**  
   Same as Audience Display, but without green chroma background.
