@@ -46,7 +46,24 @@ STATION_KEYS = ["red1", "red2", "red3", "blue1", "blue2", "blue3"]
 VLAN_MAP = {"red1": 10, "red2": 20, "red3": 30, "blue1": 40, "blue2": 50, "blue3": 60}
 GATEWAY_SUFFIX = 4
 
-team_config = {}
+WPA_FILE = "wpa_keys.json"
+
+def load_wpa_keys():
+    if os.path.exists(WPA_FILE):
+        try:
+            with open(WPA_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            # bad file, return empty
+            return {}
+    return {}
+
+def save_wpa_keys(data: dict):
+    with open(WPA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+# load at startup
+team_config = load_wpa_keys()
 selected_teams = {key: "" for key in STATION_KEYS}
 
 timer_duration = 0
@@ -110,6 +127,7 @@ def import_csv():
                 team, key = row[0].strip(), row[1].strip()
                 if team.isdigit():
                     team_config[team] = key
+        save_wpa_keys(team_config)
         log("CSV imported successfully.")
         return jsonify({"status": "success"})
     except Exception as e:
@@ -136,11 +154,19 @@ def generate_team_keys():
             key = generate_random_key()
             team_config[team] = key
             writer.writerow([team, key])
-
+    save_wpa_keys(team_config)
     response = make_response(output.getvalue())
     response.headers['Content-Disposition'] = 'attachment; filename=wpa_keys.csv'
     response.headers['Content-Type'] = 'text/csv'
     return response
+
+@app.route('/clear_wpa_keys', methods=['POST'])
+def clear_wpa_keys():
+    global team_config
+    team_config = {}
+    save_wpa_keys(team_config)
+    log("All WPA keys cleared.")
+    return jsonify({"status": "success"})
 
 @app.route('/update_display', methods=['POST'])
 def update_display():

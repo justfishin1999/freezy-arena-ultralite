@@ -123,62 +123,6 @@
   <!-- ========== MAIN CONTAINER ========== -->
   <div class="container mb-4">
     <br>
-    <!-- Import WPA Key CSV Card -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Import WPA Key CSV</div>
-      <div class="card-body">
-        <form id="csvForm" enctype="multipart/form-data" class="row g-2 align-items-end">
-          <div class="col-md-10">
-            <label for="csvFile" class="form-label">Choose CSV File:</label>
-            <input
-              id="csvFile"
-              class="form-control"
-              type="file"
-              name="file"
-              accept=".csv"
-              required
-            />
-          </div>
-          <div class="col-md-2 d-grid">
-            <button class="btn btn-primary btn-rounded" type="submit">
-              Import
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Generate WPA Keys Card -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Generate WPA Keys</div>
-      <div class="card-body">
-        <div class="mb-2">
-          <label for="teamListInput" class="form-label">Team List (comma-separated):</label>
-          <input
-            id="teamListInput"
-            type="text"
-            class="form-control"
-            placeholder="e.g. 2052, 2847, 3058"
-          />
-        </div>
-        <div class="d-grid">
-          <button id="generateKeys" class="btn btn-secondary btn-rounded" type="button">
-            Generate CSV
-          </button>
-        </div>
-        <div class="mt-3 d-flex align-items-center">
-          <div
-            id="wpaStatusBadge"
-            class="status-circle bg-secondary"
-            title="WPA Keys Status"
-          >
-            ?
-          </div>
-          <span class="fw-medium">WPA Keys Imported/Generated</span>
-        </div>
-      </div>
-    </div>
-
     <!-- Station Assignments Card -->
     <div class="card mb-4 shadow-sm">
       <div class="card-header">Station Assignments</div>

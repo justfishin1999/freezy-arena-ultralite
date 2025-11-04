@@ -206,3 +206,19 @@ async function updateTimer() {
         }
     }
 }
+
+// CLEAR ALL WPA keys
+$('#clearAllWpaBtn').on('click', async () => {
+    if(confirm("Are you sure you want to remove ALL WPA keys?")){
+        try {
+            await fetch('/clear_wpa_keys', { method: 'POST' });
+        } catch (e) {
+            // backend will log
+        }
+        await checkWpaKeyStatus();
+        await refreshLogDisplay();        
+    }
+    else {
+        alert("Aborted WPA key reset. No changes made!");
+    }
+});
