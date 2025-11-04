@@ -77,43 +77,49 @@
 </head>
 <body>
   <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container">
-      <a class="navbar-brand" href="/">Freezy Arena</a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#mainNavbar"
-        aria-controls="mainNavbar"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container">
+    <a class="navbar-brand" href="/">Freezy Arena</a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#mainNavbar"
+      aria-controls="mainNavbar"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-      <div class="collapse navbar-collapse" id="mainNavbar">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item dropdown">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
-              id="displaysDropdown"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Displays
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
-              <li><a class="dropdown-item" href="/audience">Audience Display</a></li>
-              <li><a class="dropdown-item" href="/wall">Wall Display</a></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
+    <div class="collapse navbar-collapse" id="mainNavbar">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item dropdown">
+          <a
+            class="nav-link dropdown-toggle"
+            href="#"
+            id="displaysDropdown"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Displays
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+            <li><a class="dropdown-item" href="/audience">Audience Display</a></li>
+            <li><a class="dropdown-item" href="/wall">Wall Display</a></li>
+          </ul>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/config">Config</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/">Field Control</a>
+        </li>        
+      </ul>
     </div>
-  </nav>
+  </div>
+</nav>
   <!-- ========== MAIN CONTAINER ========== -->
   <div class="container mb-4">
     <br>
@@ -228,10 +234,13 @@
         </div>
 
         <!-- Start Button -->
-        <div class="me-4">
-            <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
+        <div class="me-4 d-flex gap-2">
+          <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
             Start
-            </button>
+          </button>
+          <button id="stopTimer" class="btn btn-outline-danger btn-sm btn-rounded" type="button">
+            Stop
+          </button>
         </div>
 
         <!-- Inline Timer Display -->

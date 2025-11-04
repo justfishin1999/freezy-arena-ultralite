@@ -5,17 +5,42 @@ import secrets
 import string
 import telnetlib3
 import time
-import threading
 import requests
 import subprocess
 import platform
-from flask import Flask, make_response, render_template, request, jsonify
+import os
+from flask import Flask, make_response, render_template, request, jsonify, redirect, url_for
 
-# Configuration
-AP_IP = "10.0.100.2"
-SWITCH_IP = "10.0.100.3"
-SWITCH_PASSWORD = "1234Five"
-FLASK_PORT = 5000
+app = Flask(__name__)
+
+CONFIG_FILE = "config.json"
+
+default_config = {
+    "ap_ip": "10.0.100.2",
+    "switch_ip": "10.0.100.3",
+    "switch_password": "1234Five",
+    "enable_ap": True,
+    "enable_switch": True,
+}
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                data = json.load(f)
+                # merge to ensure new fields get defaults
+                cfg = default_config.copy()
+                cfg.update(data)
+                return cfg
+        except Exception:
+            return default_config.copy()
+    return default_config.copy()
+
+def save_config(cfg):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+runtime_config = load_config()
 
 STATION_KEYS = ["red1", "red2", "red3", "blue1", "blue2", "blue3"]
 VLAN_MAP = {"red1": 10, "red2": 20, "red3": 30, "blue1": 40, "blue2": 50, "blue3": 60}
@@ -23,19 +48,47 @@ GATEWAY_SUFFIX = 4
 
 team_config = {}
 selected_teams = {key: "" for key in STATION_KEYS}
+
 timer_duration = 0
 timer_start_time = None
 timer_running = False
 buzzer_triggered = False
+
 logs = []
 
 audience_display_teams = {key: "" for key in STATION_KEYS}
 
-app = Flask(__name__)
-
+# flask routes
 @app.route('/')
 def index():
     return render_template('index.html', stations=STATION_KEYS)
+
+@app.route('/config', methods=['GET'])
+def config_page():
+    # render the config form with current values
+    return render_template('config.html', cfg=runtime_config)
+
+@app.route('/config', methods=['POST'])
+def save_config_route():
+    global runtime_config
+    # get values from form
+    ap_ip = request.form.get('ap_ip', '').strip()
+    switch_ip = request.form.get('switch_ip', '').strip()
+    switch_password = request.form.get('switch_password', '').strip()
+    enable_ap = request.form.get('enable_ap') == 'on'
+    enable_switch = request.form.get('enable_switch') == 'on'
+
+    # update in-memory
+    runtime_config['ap_ip'] = ap_ip or runtime_config['ap_ip']
+    runtime_config['switch_ip'] = switch_ip or runtime_config['switch_ip']
+    # allow empty password? usually yes, so just assign
+    runtime_config['switch_password'] = switch_password
+    runtime_config['enable_ap'] = enable_ap
+    runtime_config['enable_switch'] = enable_switch
+
+    save_config(runtime_config)
+    log("Configuration settings updated.")
+    return redirect(url_for('config_page'))
 
 @app.route('/audience')
 def audience():
@@ -103,44 +156,63 @@ def get_teams():
 
 @app.route('/push_config', methods=['POST'])
 def push_config():
+    global timer_running
+    if timer_running:
+        return jsonify({"status": "error", "message": "Cannot push config while timer is running!"})
+
     data = request.get_json()
     stations = {}
     switch_entries = {}
+
     for station in STATION_KEYS:
         team = data.get(station, "").strip()
         selected_teams[station] = team
         if team:
             if team not in team_config:
-                return jsonify({"status": "error", "message": f"Missing WPA key for team {team}"})
+                msg = f"Missing WPA key for team {team}"
+                log(msg)
+                return jsonify({"status": "error", "message": msg})
             stations[station] = {"ssid": team, "wpaKey": team_config[team]}
             switch_entries[station] = int(team)
 
+    # now push according to enabled flags, no ping first
     try:
-        #check if AP is reachable, skip if not
-        if check_host(AP_IP):
+        if runtime_config.get("enable_ap"):
             push_ap_configuration(stations)
             log("AP configuration pushed.")
         else:
-            log("No AP found at 10.0.100.2 - skipping command...")
-        #check if switch is reachable, skip if not
-        if check_host(SWITCH_IP):
+            log("AP configuration disabled; skipping.")
+
+        if runtime_config.get("enable_switch"):
             configure_switch(switch_entries)
             log("Switch configuration pushed.")
         else:
-            log("No Switch found at 10.0.100.3 - skipping command...")
-        update_display()
+            log("Switch configuration disabled; skipping.")
+
+        # also update audience display to match
+        update_display_internal(stations=data)
         return jsonify({"status": "success"})
     except Exception as e:
         log(f"Push config error: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
+def update_display_internal(stations):
+    for station in STATION_KEYS:
+        audience_display_teams[station] = stations.get(station, "").strip()
+    log("Audience display updated (internal).")
+
 @app.route('/clear_switch', methods=['POST'])
 def clear_switch():
+    global timer_running
+    if timer_running:
+        return jsonify({"status": "error", "message": "Cannot clear switch config while timer is running!"})
+
     try:
-        if check_host(SWITCH_IP):
+        if runtime_config.get("enable_switch"):
             clear_switch_config()
+            log("Switch configuration cleared.")
         else:
-            log(f"Couldn't find the switch at 10.0.100.3 - skipping command...")            
+            log("Switch configuration disabled; skipping clear.")
         return jsonify({"status": "success"})
     except Exception as e:
         log(f"Clear switch error: {e}")
@@ -155,10 +227,21 @@ def start_timer():
         timer_start_time = time.time()
         timer_running = True
         buzzer_triggered = False
-        log(timer_duration+" minute timer started.")
+        log(f"{minutes} minute timer started.")
         return jsonify({"status": "started"})
     except Exception as e:
+        log(f"Timer start error: {e}")
         return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/stop_timer', methods=['POST'])
+def stop_timer():
+    global timer_start_time, timer_running, timer_duration, buzzer_triggered
+    timer_running = False
+    timer_start_time = None
+    buzzer_triggered = False
+    timer_duration = 0
+    log("Timer stopped.")
+    return jsonify({"status": "stopped"})
 
 @app.route('/timer_status')
 def timer_status():
@@ -177,23 +260,37 @@ def timer_status():
 def get_logs():
     return jsonify(logs)
 
+@app.route('/wpa_key_status')
+def wpa_key_status():
+    return jsonify({'loaded': len(team_config) > 0})
+
 def log(msg):
     logs.append(msg)
     print(msg)
 
 def push_ap_configuration(stations):
+    # uses runtime_config for AP IP
+    ap_ip = runtime_config.get("ap_ip")
     payload = {"channel": 13, "stationConfigurations": stations}
-    response = requests.post(f"http://{AP_IP}/configuration", headers={"Content-Type": "application/json"}, data=json.dumps(payload), timeout=3)
+    response = requests.post(
+        f"http://{ap_ip}/configuration",
+        headers={"Content-Type": "application/json"},
+        data=json.dumps(payload),
+        timeout=3
+    )
     if response.status_code // 100 != 2:
         raise Exception(f"Access point returned status {response.status_code}: {response.text}")
 
 def configure_switch(teams):
-    tn = telnetlib3.Telnet(SWITCH_IP, 23, timeout=5)
+    switch_ip = runtime_config.get("switch_ip")
+    switch_password = runtime_config.get("switch_password") or ""
+    tn = telnetlib3.Telnet(switch_ip, 23, timeout=5)
     tn.read_until(b"Password: ")
-    tn.write(SWITCH_PASSWORD.encode("ascii") + b"\n")
-    tn.write(b"enable\n" + SWITCH_PASSWORD.encode("ascii") + b"\n")
+    tn.write(switch_password.encode("ascii") + b"\n")
+    tn.write(b"enable\n" + switch_password.encode("ascii") + b"\n")
     tn.write(b"terminal length 0\nconfigure terminal\n")
 
+    # first clear out existing for these vlans
     for vlan in VLAN_MAP.values():
         tn.write(f"interface Vlan{vlan}\nno ip address\nno access-list 1{vlan}\nno ip dhcp pool dhcp{vlan}\n".encode())
 
@@ -216,10 +313,12 @@ interface Vlan{vlan}
     tn.read_all().decode()
 
 def clear_switch_config():
-    tn = telnetlib3.Telnet(SWITCH_IP, 23, timeout=5)
+    switch_ip = runtime_config.get("switch_ip")
+    switch_password = runtime_config.get("switch_password") or ""
+    tn = telnetlib3.Telnet(switch_ip, 23, timeout=5)
     tn.read_until(b"Password: ")
-    tn.write(SWITCH_PASSWORD.encode("ascii") + b"\n")
-    tn.write(b"enable\n" + SWITCH_PASSWORD.encode("ascii") + b"\n")
+    tn.write(switch_password.encode("ascii") + b"\n")
+    tn.write(b"enable\n" + switch_password.encode("ascii") + b"\n")
     tn.write(b"terminal length 0\nconfigure terminal\n")
     for vlan in VLAN_MAP.values():
         tn.write(f"""
@@ -232,18 +331,6 @@ no ip dhcp pool dhcp{vlan}
     tn.write(b"end\ncopy running-config startup-config\n\nexit\n")
     tn.read_all().decode()
 
-def check_host(host):
-    param = '-n' if platform.system().lower() == 'windows' else '-c'
-    command = ['ping', param, '1', host] #send one ping
-    result = subprocess.call(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if result == 0:
-            return True
-    else:
-            return False
-
-@app.route('/wpa_key_status')
-def wpa_key_status():
-    return jsonify({'loaded': len(team_config) > 0})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=FLASK_PORT)
+    app.run(host='0.0.0.0', port=5000)
