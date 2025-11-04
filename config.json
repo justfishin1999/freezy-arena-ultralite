@@ -1,7 +1,0 @@
-{
-  "ap_ip": "10.0.100.2",
-  "switch_ip": "10.0.100.3",
-  "switch_password": "1234Five",
-  "enable_ap": false,
-  "enable_switch": false
-}
