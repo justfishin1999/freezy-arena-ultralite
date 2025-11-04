@@ -9,7 +9,7 @@
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #747474; /* Chroma key green */
+      background-color: #747474;
       height: 100vh;
       display: flex;
       justify-content: center;
@@ -25,7 +25,7 @@
       margin-bottom: 40px;
       background-color: white;
       border-radius: 20px;
-      box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
       max-width: 90vw;
     }
 
@@ -104,57 +104,93 @@
       }, 5000);
     }
 
-    function updateTimer() {
-      fetch('/timer_status')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('timer').textContent = formatTime(data.remaining);
-          if (data.buzzer && !hasBuzzerPlayed) {
-            const buzzer = document.getElementById('buzzer');
-            buzzer.play().catch(error => {
-              console.error('end.wav playback failed:', error);
-              showAlert();
-            });
-            hasBuzzerPlayed = true;
-          }
-        })
-        .catch(error => console.error('Fetch timer_status failed:', error));
+    function renderTimer(seconds) {
+      document.getElementById('timer').textContent = formatTime(seconds);
+    }
+
+    function handleBuzzer(data) {
+      if (data.buzzer && !hasBuzzerPlayed) {
+        const buzzer = document.getElementById('buzzer');
+        buzzer.play().catch(error => {
+          console.error('end.wav playback failed:', error);
+          showAlert();
+        });
+        hasBuzzerPlayed = true;
+      }
+    }
+
+    // fallback polling for timer
+    async function pollTimerOnce() {
+      try {
+        const res = await fetch('/timer_status');
+        const data = await res.json();
+        renderTimer(data.remaining || 0);
+        handleBuzzer(data);
+      } catch (e) {
+        console.error('Fetch /timer_status failed:', e);
+      }
+    }
+
+    // SSE for timer
+    function initTimerSSE() {
+      if (!window.EventSource) {
+        // no SSE support; poll every second
+        setInterval(pollTimerOnce, 1000);
+        return;
+      }
+
+      const es = new EventSource('/timer_stream');
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const remaining = Math.floor(data.remaining || 0);
+          renderTimer(remaining);
+          // If/when you add buzzer to SSE payload, call handleBuzzer(data) here
+        } catch (err) {
+          console.error('Bad SSE data:', err);
+        }
+      };
+
+      es.onerror = () => {
+        console.warn('SSE failed, falling back to polling.');
+        es.close();
+        setInterval(pollTimerOnce, 1000);
+      };
     }
 
     function updateTeams() {
-  fetch('/teams')
-    .then(response => response.json())
-    .then(data => {
-      const teamsDiv = document.getElementById('teams');
-      teamsDiv.innerHTML = '';
+      fetch('/teams')
+        .then(response => response.json())
+        .then(data => {
+          const teamsDiv = document.getElementById('teams');
+          teamsDiv.innerHTML = '';
 
-      const redStations = ['red1', 'red2', 'red3'];
-      const blueStations = ['blue1', 'blue2', 'blue3'];
+          const redStations = ['red1', 'red2', 'red3'];
+          const blueStations = ['blue1', 'blue2', 'blue3'];
 
-      const orderedStations = isReversed
-        ? [...blueStations, ...redStations]
-        : [...redStations, ...blueStations];
+          const orderedStations = isReversed
+            ? [...blueStations, ...redStations]
+            : [...redStations, ...blueStations];
 
-      orderedStations.forEach(station => {
-        const team = data[station];
-        if (team) {
-          const box = document.createElement('div');
-          box.className = `team-box ${station.startsWith('red') ? 'red' : 'blue'}`;
-          box.textContent = team;
-          teamsDiv.appendChild(box);
-        }
-      });
-    });
-}
+          orderedStations.forEach(station => {
+            const team = data[station];
+            if (team) {
+              const box = document.createElement('div');
+              box.className = `team-box ${station.startsWith('red') ? 'red' : 'blue'}`;
+              box.textContent = team;
+              teamsDiv.appendChild(box);
+            }
+          });
+        })
+        .catch(err => console.error('Fetch /teams failed:', err));
+    }
 
-
-    setInterval(() => {
-      updateTimer();
-      updateTeams();
-    }, 1000);
-
-    updateTimer();
+    // start
+    initTimerSSE();
     updateTeams();
+    // teams don’t change every second, 5s is fine
+    setInterval(updateTeams, 5000);
   </script>
 </body>
 </html>

@@ -9,7 +9,7 @@ import requests
 import subprocess
 import platform
 import os
-from flask import Flask, make_response, render_template, request, jsonify, redirect, url_for
+from flask import Flask, Response, make_response, render_template, request, jsonify, redirect, stream_with_context, url_for
 
 app = Flask(__name__)
 
@@ -248,39 +248,67 @@ def clear_switch():
 def start_timer():
     global timer_start_time, timer_duration, timer_running, buzzer_triggered
     try:
-        minutes = int(request.form['minutes'])
-        timer_duration = minutes * 60
-        timer_start_time = time.time()
-        timer_running = True
-        buzzer_triggered = False
-        log(f"{minutes} minute timer started.")
-        return jsonify({"status": "started"})
-    except Exception as e:
-        log(f"Timer start error: {e}")
-        return jsonify({"status": "error", "message": str(e)})
+        minutes = int(request.form.get('minutes', '0'))
+    except ValueError:
+        return jsonify({"status": "error", "message": "Invalid minutes"}), 400
+
+    if minutes <= 0:
+        return jsonify({"status": "error", "message": "Minutes must be > 0"}), 400
+
+    timer_duration = minutes * 60
+    timer_start_time = time.time()
+    timer_running = True
+    buzzer_triggered = False
+    log(f"{minutes} minute timer started.")
+    return jsonify({"status": "started"})
 
 @app.route('/stop_timer', methods=['POST'])
 def stop_timer():
-    global timer_start_time, timer_running, timer_duration, buzzer_triggered
+    global timer_running, timer_start_time, timer_duration, buzzer_triggered
     timer_running = False
     timer_start_time = None
-    buzzer_triggered = False
     timer_duration = 0
+    buzzer_triggered = False
     log("Timer stopped.")
     return jsonify({"status": "stopped"})
 
-@app.route('/timer_status')
-def timer_status():
-    global timer_start_time, timer_running, timer_duration, buzzer_triggered
+def get_timer_state():
+    global timer_start_time, timer_running, timer_duration
     if timer_running and timer_start_time:
         elapsed = time.time() - timer_start_time
         remaining = max(0, timer_duration - elapsed)
-        trigger_buzzer = False
-        if remaining <= 0 and not buzzer_triggered:
-            trigger_buzzer = True
-            buzzer_triggered = True
-        return jsonify({'remaining': remaining, 'running': timer_running, 'buzzer': trigger_buzzer})
-    return jsonify({'remaining': timer_duration, 'running': False, 'buzzer': False})
+        return remaining, True
+    return timer_duration, False
+
+@app.route('/timer_stream')
+def timer_stream():
+    def event_stream():
+        while True:
+            remaining, running = get_timer_state()
+            payload = json.dumps({
+                "remaining": remaining,
+                "running": running
+            })
+            yield f"data: {payload}\n\n"
+            time.sleep(1)
+    return Response(stream_with_context(event_stream()), mimetype='text/event-stream')
+
+@app.route('/timer_status')
+def timer_status():
+    global buzzer_triggered
+    remaining, running = get_timer_state()
+    trigger_buzzer = False
+
+    # if we hit 0 and haven't triggered yet, do it
+    if running and remaining <= 0 and not buzzer_triggered:
+        trigger_buzzer = True
+        buzzer_triggered = True
+
+    return jsonify({
+        "remaining": remaining,
+        "running": running,
+        "buzzer": trigger_buzzer
+    })
 
 @app.route('/logs')
 def get_logs():

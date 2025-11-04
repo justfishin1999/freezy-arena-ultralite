@@ -104,57 +104,95 @@
       }, 5000);
     }
 
-    function updateTimer() {
-      fetch('/timer_status')
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('timer').textContent = formatTime(data.remaining);
-          if (data.buzzer && !hasBuzzerPlayed) {
-            const buzzer = document.getElementById('buzzer');
-            buzzer.play().catch(error => {
-              console.error('end.wav playback failed:', error);
-              showAlert();
-            });
-            hasBuzzerPlayed = true;
-          }
-        })
-        .catch(error => console.error('Fetch timer_status failed:', error));
+    // render timer from SSE or fallback
+    function renderTimer(seconds) {
+      document.getElementById('timer').textContent = formatTime(seconds);
+    }
+
+    // fallback polling for timer if SSE fails
+    async function pollTimerOnce() {
+      try {
+        const res = await fetch('/timer_status');
+        const data = await res.json();
+        renderTimer(data.remaining || 0);
+        handleBuzzer(data);
+      } catch (e) {
+        console.error('Fetch timer_status failed:', e);
+      }
+    }
+
+    function handleBuzzer(data) {
+      if (data.buzzer && !hasBuzzerPlayed) {
+        const buzzer = document.getElementById('buzzer');
+        buzzer.play().catch(error => {
+          console.error('end.wav playback failed:', error);
+          showAlert();
+        });
+        hasBuzzerPlayed = true;
+      }
+    }
+
+    // SSE for timer
+    function initTimerSSE() {
+      if (!window.EventSource) {
+        // no SSE, just poll every second
+        setInterval(pollTimerOnce, 1000);
+        return;
+      }
+
+      const es = new EventSource('/timer_stream');
+
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const remaining = Math.floor(data.remaining || 0);
+          renderTimer(remaining);
+          // if you add buzzer to SSE payload later, handle here
+        } catch (e) {
+          console.error('Bad SSE timer data:', e);
+        }
+      };
+
+      es.onerror = () => {
+        console.warn('SSE failed, falling back to polling.');
+        es.close();
+        setInterval(pollTimerOnce, 1000);
+      };
     }
 
     function updateTeams() {
-  fetch('/teams')
-    .then(response => response.json())
-    .then(data => {
-      const teamsDiv = document.getElementById('teams');
-      teamsDiv.innerHTML = '';
+      fetch('/teams')
+        .then(response => response.json())
+        .then(data => {
+          const teamsDiv = document.getElementById('teams');
+          teamsDiv.innerHTML = '';
 
-      const redStations = ['red1', 'red2', 'red3'];
-      const blueStations = ['blue1', 'blue2', 'blue3'];
+          const redStations = ['red1', 'red2', 'red3'];
+          const blueStations = ['blue1', 'blue2', 'blue3'];
 
-      const orderedStations = isReversed
-        ? [...blueStations, ...redStations]
-        : [...redStations, ...blueStations];
+          const orderedStations = isReversed
+            ? [...blueStations, ...redStations]
+            : [...redStations, ...blueStations];
 
-      orderedStations.forEach(station => {
-        const team = data[station];
-        if (team) {
-          const box = document.createElement('div');
-          box.className = `team-box ${station.startsWith('red') ? 'red' : 'blue'}`;
-          box.textContent = team;
-          teamsDiv.appendChild(box);
-        }
-      });
-    });
-}
+          orderedStations.forEach(station => {
+            const team = data[station];
+            if (team) {
+              const box = document.createElement('div');
+              box.className = `team-box ${station.startsWith('red') ? 'red' : 'blue'}`;
+              box.textContent = team;
+              teamsDiv.appendChild(box);
+            }
+          });
+        })
+        .catch(err => console.error('Fetching teams failed:', err));
+    }
 
-
-    setInterval(() => {
-      updateTimer();
-      updateTeams();
-    }, 1000);
-
-    updateTimer();
+    // start everything
+    initTimerSSE();
     updateTeams();
+
+    // teams don’t need 1s — do 3s or 5s
+    setInterval(updateTeams, 5000);
   </script>
 </body>
 </html>
