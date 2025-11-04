@@ -10,6 +10,10 @@ $(function () {
     // poll logs every few seconds to stay live
     setInterval(refreshLogDisplay, 5000);
 
+    // poll station connection statuses
+    updateStationBadges();
+    setInterval(updateStationBadges, 3000);
+
     // =========================
     // WPA CSV IMPORT (config page)
     // =========================
@@ -298,5 +302,50 @@ function renderTimer(seconds) {
         timerEl.textContent = '--:--';
     } else {
         timerEl.textContent = formatTime(seconds);
+    }
+}
+
+// -------------------------------------------------
+// Update per-station connection badges (via /ap_status)
+// -------------------------------------------------
+async function updateStationBadges() {
+    const badges = document.querySelectorAll('[id^="conn-"]');
+
+    try {
+        const res = await fetch('/ap_status', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error);
+
+        const statuses = data.stationStatuses || {};
+        const keys = ['red1','red2','red3','blue1','blue2','blue3'];
+
+        keys.forEach(st => {
+            const badge = document.getElementById(`conn-${st}`);
+            if (!badge) return;
+
+            const info = statuses[st] || {};
+            const ssid = info.ssid || '?';   // fallback if missing
+            const linked = !!info.isLinked;
+
+            // Set SSID text
+            badge.textContent = ssid;
+
+            // Set color: green if linked, red if not
+            badge.className = 'ms-2 px-2 py-1 text-white text-center rounded-0';
+            badge.classList.add(linked ? 'bg-success' : 'bg-danger');
+
+            // Tooltip
+            badge.title = linked
+                ? `Connected – ${info.signalDbm || 0} dBm – ${info.connectionQuality || ''}`
+                : 'Not connected';
+        });
+    } catch (e) {
+        console.error('AP status failed:', e);
+        badges.forEach(b => {
+            b.textContent = 'ERR';
+            b.className = 'ms-2 px-2 py-1 text-white text-center rounded-0 bg-dark';
+            b.title = 'AP unreachable';
+        });
     }
 }
