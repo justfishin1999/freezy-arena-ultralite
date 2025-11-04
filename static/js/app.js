@@ -213,14 +213,13 @@ function initTimerStream() {
         };
 
         es.onerror = function () {
-            console.warn('SSE connection lost, falling back to polling.');
+            console.warn('SSE connection lost');
             es.close();
-            // fallback to poll
-            setInterval(updateTimer, 1000);
+            setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
         };
     } else {
-        // no SSE support
-        setInterval(updateTimer, 1000);
+        // no SSE, try again
+        setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
     }
 }
 
