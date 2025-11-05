@@ -252,79 +252,6 @@ function renderTimer(seconds) {
     }
 }
 
-// -------------------------------------------------
-// Update per-station connection badges (via /ap_status)
-// -------------------------------------------------
-async function updateStationBadges() {
-  const stationKeys = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
-  const allBadges = document.querySelectorAll('[id^="conn-"]');
-
-  let apEnabled = true;
-
-  // 1) ask the server config first
-  try {
-    const cfgRes = await fetch('/config_status', { cache: 'no-store' });
-    const cfgData = await cfgRes.json();
-    apEnabled = cfgData.apEnabled ?? true;
-  } catch (err) {
-    console.warn('Could not load /config_status, assuming AP enabled.');
-  }
-
-  // if AP is disabled in config, just show N/A and stop
-  if (!apEnabled) {
-    allBadges.forEach(badge => {
-      badge.textContent = 'INACTIVE';
-      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
-      badge.classList.add('bg-secondary');   // gray
-      badge.title = 'AP configuration disabled in server config';
-    });
-    return;
-  }
-
-  // 2) otherwise, AP is enabled → query real AP status
-  try {
-    const res = await fetch('/ap_status', { cache: 'no-store' });
-    const data = await res.json();
-
-    if (data.error) throw new Error(data.error);
-
-    const statuses = data.stationStatuses || {};
-
-    stationKeys.forEach(station => {
-      const badge = document.getElementById(`conn-${station}`);
-      if (!badge) return;
-
-      const info = statuses[station] || {};
-      const ssid = info.ssid || 'ERR';
-      const linked = !!info.isLinked;
-
-      // keep pill shape; only change bg
-      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
-
-      badge.textContent = ssid;
-      if (info.ssid) {
-        badge.classList.add(linked ? 'bg-success' : 'bg-danger');
-        badge.title = linked
-          ? `Connected – ${info.signalDbm || 0} dBm${info.connectionQuality ? ' – ' + info.connectionQuality : ''}`
-          : 'Not connected';
-      } else {
-        badge.classList.add('bg-dark');
-        badge.title = 'AP enabled, but no data for this station';
-      }
-    });
-
-  } catch (err) {
-    console.error('AP status failed:', err);
-    // AP is enabled but unreachable → ERR
-    allBadges.forEach(badge => {
-      badge.textContent = 'ERR';
-      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger');
-      badge.classList.add('bg-dark');
-      badge.title = 'AP enabled in server config, but unreachable';
-    });
-  }
-}
-
 function initUnifiedStream(retryDelayMs = 1500) {
     if (!window.EventSource) {
         console.warn('SSE not supported in this browser.');
@@ -379,23 +306,27 @@ function sseUpdateStationBadges(apData) {
     const stationKeys = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
     const allBadges = document.querySelectorAll('[id^="conn-"]');
 
-    // if AP disabled in config.json
+    function setBase(badge) {
+        badge.className = 'badge rounded-pill px-2 py-1 text-center fw-semibold';
+    }
+
+    // AP disabled in config.json
     if (apData && apData.apEnabled === false) {
         allBadges.forEach(badge => {
+            setBase(badge);
             badge.textContent = 'N/A';
-            badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
-            badge.classList.add('bg-secondary');
+            badge.classList.add('bg-secondary', 'text-white');
             badge.title = 'AP configuration disabled in server config';
         });
         return;
     }
 
-    // AP enabled but maybe error?
+    // AP enabled but error talking to it
     if (apData && apData.error) {
         allBadges.forEach(badge => {
+            setBase(badge);
             badge.textContent = 'ERR';
-            badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger');
-            badge.classList.add('bg-dark');
+            badge.classList.add('bg-dark', 'text-white');
             badge.title = apData.error || 'AP unreachable';
         });
         return;
@@ -411,17 +342,56 @@ function sseUpdateStationBadges(apData) {
         const ssid = info.ssid || 'ERR';
         const linked = !!info.isLinked;
 
-        badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
+        // always start from base so we keep pill + alignment
+        setBase(badge);
         badge.textContent = ssid;
 
         if (info.ssid) {
-            badge.classList.add(linked ? 'bg-success' : 'bg-danger');
-            badge.title = linked
-                ? `Connected – ${info.signalDbm || 0} dBm${info.connectionQuality ? ' – ' + info.connectionQuality : ''}`
-                : 'Not connected';
+            if (linked) {
+                badge.classList.add('bg-success', 'text-white');
+                badge.title =
+                    `Connected – ${info.signalDbm || 0} dBm` +
+                    (info.connectionQuality ? ` – ${info.connectionQuality}` : '');
+            } else {
+                badge.classList.add('bg-danger', 'text-white');
+                badge.title = 'Not connected';
+            }
         } else {
-            badge.classList.add('bg-dark');
+            // AP up, but no data for this station
+            badge.classList.add('bg-dark', 'text-white');
             badge.title = 'AP enabled, but no data for this station';
         }
     });
 }
+
+
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const reversed = params.get('reversed') === 'true';
+  if (!reversed) return;
+
+  document.querySelectorAll('.station-row').forEach(row => {
+    const containers = Array.from(row.querySelectorAll('.station-container'));
+    if (containers.length === 2) {
+      row.innerHTML = '';
+      row.appendChild(containers[1]);
+      row.appendChild(containers[0]);
+    }
+  });
+})();
+
+// Preset buttons functionality
+document.querySelectorAll('.timer-preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const seconds = parseInt(btn.dataset.seconds, 10);
+    const input = document.getElementById('timerInput');
+    const timerDisplay = document.getElementById('timer');
+
+    if (input && timerDisplay && !isNaN(seconds)) {
+      input.value = seconds;
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+  });
+});
