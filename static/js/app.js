@@ -5,14 +5,7 @@ $(function () {
     refreshLogDisplay();
 
     // set up timer: prefer SSE
-    initTimerStream();
-
-    // poll logs every few seconds to stay live
-    setInterval(refreshLogDisplay, 5000);
-
-    // poll station connection statuses
-    updateStationBadges();
-    setInterval(updateStationBadges, 3000);
+    initUnifiedStream();
 
     // =========================
     // WPA CSV IMPORT (config page)
@@ -192,41 +185,6 @@ $(function () {
 });
 
 
-// =========================
-// FUNCTIONS
-// =========================
-
-// prefer SSE for timer
-function initTimerStream() {
-    const timerEl = document.getElementById('timer');
-    if (!timerEl) {
-        return; // page doesn't have a timer
-    }
-
-    if (!!window.EventSource) {
-        const es = new EventSource('/timer_stream');
-
-        es.onmessage = function (event) {
-            try {
-                const data = JSON.parse(event.data);
-                const remaining = Math.floor(data.remaining || 0);
-                renderTimer(remaining);
-            } catch (e) {
-                // ignore
-            }
-        };
-
-        es.onerror = function () {
-            console.warn('SSE connection lost');
-            es.close();
-            setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
-        };
-    } else {
-        // no SSE, try again
-        setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
-    }
-}
-
 // pull WPA status from backend
 async function checkWpaKeyStatus() {
     const badge = document.getElementById('wpaStatusBadge');
@@ -315,7 +273,7 @@ async function updateStationBadges() {
   // if AP is disabled in config, just show N/A and stop
   if (!apEnabled) {
     allBadges.forEach(badge => {
-      badge.textContent = 'N/A';
+      badge.textContent = 'INACTIVE';
       badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
       badge.classList.add('bg-secondary');   // gray
       badge.title = 'AP configuration disabled in server config';
@@ -365,4 +323,105 @@ async function updateStationBadges() {
       badge.title = 'AP enabled in server config, but unreachable';
     });
   }
+}
+
+function initUnifiedStream(retryDelayMs = 1500) {
+    if (!window.EventSource) {
+        console.warn('SSE not supported in this browser.');
+        return;
+    }
+
+    const es = new EventSource('/stream');
+
+    es.addEventListener('timer', (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            const remaining = Math.floor(data.remaining || 0);
+            renderTimer(remaining);
+            // if you want to reflect “running” in UI, you can update a label here
+        } catch (e) {
+            console.error('Bad timer SSE data', e);
+        }
+    });
+
+    es.addEventListener('logs', (event) => {
+        try {
+            const lines = JSON.parse(event.data);
+            const logBox = $('#logDisplay');
+            if (!logBox.length) return;
+            logBox.empty();
+            lines.forEach(line => {
+                logBox.append($('<div>').text(line));
+            });
+            logBox.scrollTop(logBox[0].scrollHeight);
+        } catch (e) {
+            console.error('Bad logs SSE data', e);
+        }
+    });
+
+    es.addEventListener('apstatus', (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            sseUpdateStationBadges(data);
+        } catch (e) {
+            console.error('Bad apstatus SSE data', e);
+        }
+    });
+
+    es.onerror = () => {
+        console.warn('SSE connection lost, retrying...');
+        es.close();
+        setTimeout(() => initUnifiedStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
+    };
+}
+
+function sseUpdateStationBadges(apData) {
+    const stationKeys = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
+    const allBadges = document.querySelectorAll('[id^="conn-"]');
+
+    // if AP disabled in config.json
+    if (apData && apData.apEnabled === false) {
+        allBadges.forEach(badge => {
+            badge.textContent = 'N/A';
+            badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
+            badge.classList.add('bg-secondary');
+            badge.title = 'AP configuration disabled in server config';
+        });
+        return;
+    }
+
+    // AP enabled but maybe error?
+    if (apData && apData.error) {
+        allBadges.forEach(badge => {
+            badge.textContent = 'ERR';
+            badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger');
+            badge.classList.add('bg-dark');
+            badge.title = apData.error || 'AP unreachable';
+        });
+        return;
+    }
+
+    const statuses = (apData && apData.stationStatuses) ? apData.stationStatuses : {};
+
+    stationKeys.forEach(station => {
+        const badge = document.getElementById(`conn-${station}`);
+        if (!badge) return;
+
+        const info = statuses[station] || {};
+        const ssid = info.ssid || 'ERR';
+        const linked = !!info.isLinked;
+
+        badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
+        badge.textContent = ssid;
+
+        if (info.ssid) {
+            badge.classList.add(linked ? 'bg-success' : 'bg-danger');
+            badge.title = linked
+                ? `Connected – ${info.signalDbm || 0} dBm${info.connectionQuality ? ' – ' + info.connectionQuality : ''}`
+                : 'Not connected';
+        } else {
+            badge.classList.add('bg-dark');
+            badge.title = 'AP enabled, but no data for this station';
+        }
+    });
 }

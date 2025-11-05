@@ -77,6 +77,13 @@ function initTimerSSE(retryDelayMs = 1500) {
         renderTimer(remaining);
       }
 
+      if (typeof data.event_name === 'string') {
+        const el = document.getElementById('event-name');
+      if (el) {
+        el.textContent = data.event_name;
+      }
+    }
+
       maybeBuzzFromData(data);
     } catch (err) {
       console.error('Bad SSE data:', err);
@@ -96,25 +103,33 @@ function updateTeams() {
   fetch('/teams')
     .then(res => res.json())
     .then(data => {
-      const teamsDiv = document.getElementById('teams');
-      teamsDiv.innerHTML = '';
+      const redDiv = document.getElementById('red-teams');
+      const blueDiv = document.getElementById('blue-teams');
+      redDiv.innerHTML = '';
+      blueDiv.innerHTML = '';
 
       const redStations = ['red1', 'red2', 'red3'];
       const blueStations = ['blue1', 'blue2', 'blue3'];
-      const ordered = isReversed ? [...blueStations, ...redStations] : [...redStations, ...blueStations];
 
-      ordered.forEach(station => {
+      redStations.forEach(station => {
         const team = data[station];
-        if (team) {
-          const box = document.createElement('div');
-          box.className = `team-box ${station.startsWith('red') ? 'red' : 'blue'}`;
-          box.textContent = team;
-          teamsDiv.appendChild(box);
-        }
+        const box = document.createElement('div');
+        box.className = 'team-box red';
+        box.textContent = team && team.trim() !== '' ? team : '\u00A0';
+        redDiv.appendChild(box);
       });
-    })
-    .catch(err => console.error('Fetch /teams failed:', err));
+
+      blueStations.forEach(station => {
+        const team = data[station];
+        const box = document.createElement('div');
+        box.className = 'team-box blue';
+        box.textContent = team && team.trim() !== '' ? team : '\u00A0';
+        blueDiv.appendChild(box);
+      });
+    });
 }
+
+
 
 // Allow double-click toggle reversed
 document.addEventListener('dblclick', () => {

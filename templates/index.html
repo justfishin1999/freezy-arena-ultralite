@@ -13,7 +13,7 @@
   <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
-      <a class="navbar-brand" href="/">Freezy Arena</a>
+      <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
       <button
         class="navbar-toggler"
         type="button"
@@ -45,7 +45,7 @@
             </ul>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/config">Config</a>
+            <a class="nav-link" href="/setup">Setup</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/">Field Control</a>
@@ -64,9 +64,11 @@
       <div class="card-body">
         <form id="configForm" class="row g-3">
           <!-- AP IP (optional display) -->
+           {%if ap_enabled%}
           <div class="col-12 mb-3">
             <label class="form-label">AP IP: <strong>{{ ap_ip or 'Not set' }}</strong></label>
           </div>
+           {%endif%}
 
           {% for station in stations %}
           <div class="col-md-2 col-sm-4 d-flex justify-content-center">
@@ -86,7 +88,7 @@
                   placeholder="Team #"
                   data-station="{{ station }}"
                 />
-
+                {%if ap_enabled%}
                 <!-- status + label stacked together -->
                 <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
                   <span
@@ -101,21 +103,33 @@
                     AP Status
                   </div>
                 </div>
+                {%endif%}
               </div>
             </div>
           </div>
           {% endfor %}
 
           <div class="col-12 d-flex flex-wrap justify-content-center gap-2 mt-3">
+            {% if ap_enabled %}
             <button type="submit" class="btn btn-success btn-rounded">
               Push Configuration
             </button>
+            {% endif %}
+            {% if not ap_enabled %}
+            <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
+              <button id="updateDisplay" type="button" class="btn btn-success btn-rounded">
+                Push Configuration
+              </button>
+              <div class="small text-muted" style="font-size: 0.7rem; line-height: 1;">To configure Access Point or Switch, AP Configuration must be enabled.</div>
+            </div>
+            {% else %}
             <button id="updateDisplay" type="button" class="btn btn-info btn-rounded">
               Update Display
             </button>
             <button id="clearSwitch" type="button" class="btn btn-warning btn-rounded">
               Clear Switch Config
             </button>
+            {% endif %}
           </div>
         </form>
       </div>
