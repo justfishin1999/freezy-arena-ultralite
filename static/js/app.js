@@ -315,7 +315,7 @@ async function updateStationBadges() {
   // if AP is disabled in config, just show N/A and stop
   if (!apEnabled) {
     allBadges.forEach(badge => {
-      badge.textContent = 'N/A';
+      badge.textContent = 'INACTIVE';
       badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
       badge.classList.add('bg-secondary');   // gray
       badge.title = 'AP configuration disabled in server config';
