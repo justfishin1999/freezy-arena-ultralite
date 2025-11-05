@@ -315,7 +315,8 @@ def timer_stream():
                 "remaining": remaining,
                 "running": running,
                 "buzzer": trigger_buzzer,
-                "event_name": runtime_config.get("event_name","")
+                "event_name": runtime_config.get("event_name",""),
+                "teams": audience_display_teams,
             })
             yield f"data: {payload}\n\n"
             time.sleep(1)
@@ -480,7 +481,8 @@ def unified_stream():
                 "remaining": remaining,
                 "running": running,
                 "buzzer": trigger_buzzer,
-                "event_name": runtime_config.get("event_name","")
+                "event_name": runtime_config.get("event_name",""),
+                "teams": audience_display_teams,
 
             })
             yield f"event: timer\ndata: {timer_payload}\n\n"

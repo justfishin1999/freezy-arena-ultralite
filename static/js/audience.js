@@ -1,164 +1,147 @@
-let hasBuzzerPlayed = false;
+/* --------------------------------------------------------------
+   audience.js – buzzer works on EVERY match
+   -------------------------------------------------------------- */
+console.log("%cAUDIENCE.JS LOADED", "color:lime;font-size:20px");
+
 let lastRemaining = null;
+let audioUnlocked = false;
+let matchEnded = false;
+
+// <-- define this so renderTeamsFromData can use it
 const urlParams = new URLSearchParams(window.location.search);
 const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
 
-// Unlock audio on first click
-function unlockAudio() {
-  const buzzer = document.getElementById('buzzer');
-  if (!buzzer) return;
-  buzzer.play().then(() => {
-    buzzer.pause();
-    buzzer.currentTime = 0;
-    window.removeEventListener('click', unlockAudio);
+/* ---------- 1. UNLOCK AUDIO (once per page load) ---------- */
+function unlockAudioContext() {
+  if (audioUnlocked) return;
+  console.log("UNLOCK: Trying to unlock audio context…");
+  const u = document.getElementById('unlocker');
+  u.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  u.play().then(() => {
+    console.log("%cUNLOCK: SUCCESS – Audio context unlocked", "color:green;font-weight:bold");
+    audioUnlocked = true;
   }).catch(() => {});
 }
-window.addEventListener('click', unlockAudio);
+['mousedown','touchstart','keydown','pointerdown'].forEach(ev =>
+  window.addEventListener(ev, unlockAudioContext, {once:true, passive:true})
+);
 
-function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-function renderTimer(seconds) {
-  document.getElementById('timer').textContent = formatTime(seconds);
-}
-
-function showAlert() {
-  const alert = document.getElementById('alert');
-  if (!alert) return;
-  alert.style.display = 'block';
-  setTimeout(() => alert.style.display = 'none', 5000);
-}
-
+/* ---------- 2. BUZZER LOGIC ---------- */
 function maybeBuzzFromData(data) {
-  const running = !!data.running;
-  const remaining = typeof data.remaining === 'number' ? data.remaining : 0;
+  const running   = !!data.running;
+  const remaining = Math.floor(data.remaining || 0);
 
-  const hitZeroThisTick = running && lastRemaining !== null && lastRemaining > 0 && remaining <= 0;
-  const serverWantsBuzz = running && data.buzzer === true;
+  const hitZero    = running && lastRemaining !== null && lastRemaining > 0 && remaining <= 0;
+  const serverBuzz = running && data.buzzer === true;
 
-  if ((hitZeroThisTick || serverWantsBuzz) && !hasBuzzerPlayed) {
+  if ((hitZero || serverBuzz) && !matchEnded) {
     const buzzer = document.getElementById('buzzer');
-    if (buzzer) {
-      buzzer.play().catch(err => {
-        console.error('end.wav playback failed:', err);
+    if (!buzzer) return;
+    if (!audioUnlocked) unlockAudioContext();
+
+    buzzer.currentTime = 0;
+    const p = buzzer.play();
+    if (p) {
+      p.then(() => {
+        matchEnded = true;
+      }).catch(err => {
+        console.error("BUZZER BLOCKED:", err);
         showAlert();
+        matchEnded = true;
       });
-    } else {
-      showAlert();
     }
-    hasBuzzerPlayed = true;
+  }
+
+  if (!running && matchEnded) {
+    // ready for next countdown
+    matchEnded = false;
   }
 
   lastRemaining = remaining;
 }
 
-// SSE with persistent reconnect
-function initTimerSSE(retryDelayMs = 1500) {
-  if (!window.EventSource) {
-    console.error('EventSource not supported; cannot start SSE.');
-    return;
-  }
+/* ---------- 3. TIMER DISPLAY ---------- */
+function formatTime(s) {
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const sec = String(Math.floor(s%60)).padStart(2,'0');
+  return `${m}:${sec}`;
+}
+function renderTimer(s) {
+  const el = document.getElementById('timer');
+  if (el) el.textContent = formatTime(s);
+}
+function showAlert() {
+  const a = document.getElementById('alert');
+  if (!a) return;
+  a.style.display = 'block';
+  setTimeout(() => a.style.display = 'none', 5000);
+}
 
-  const es = new EventSource('/timer_stream');
+/* ---------- 4. SSE ---------- */
+function initSSE() {
+  console.log("SSE: connecting to /stream …");
+  const es = new EventSource('/stream');
 
-  es.onmessage = (event) => {
+  es.addEventListener('timer', e => {
     try {
-      const data = JSON.parse(event.data);
-      const running = !!data.running;
-      const remaining = Math.floor(data.remaining || 0);
+      const d = JSON.parse(e.data);
 
-      if (!running) {
-        renderTimer(0);
-        lastRemaining = 0;
-      } else {
-        renderTimer(remaining);
+      const secs = d.running ? Math.max(0, Math.floor(d.remaining)) : 0;
+      renderTimer(secs);
+
+      const nameEl = document.getElementById('event-name');
+      if (nameEl && d.event_name) {
+        nameEl.textContent = d.event_name;
       }
 
-      if (typeof data.event_name === 'string') {
-        const el = document.getElementById('event-name');
-      if (el) {
-        el.textContent = data.event_name;
-      }
-    }
+      maybeBuzzFromData(d);
 
-      maybeBuzzFromData(data);
+      // ALWAYS render 6 boxes, even if teams missing
+      renderTeamsFromData(d.teams || {});
     } catch (err) {
-      console.error('Bad SSE data:', err);
+      console.error('bad SSE timer payload', err);
     }
-  };
+  });
 
   es.onerror = () => {
-    console.warn('SSE disconnected, retrying...');
+    console.warn("SSE: reconnecting…");
     es.close();
-    setTimeout(() => {
-      initTimerSSE(Math.min(retryDelayMs * 2, 10000));
-    }, retryDelayMs);
+    setTimeout(initSSE, 2000);
   };
 }
 
-function updateTeams() {
-  fetch('/teams')
-    .then(res => res.json())
-    .then(data => {
-      const redDiv = document.getElementById('red-teams');
-      const blueDiv = document.getElementById('blue-teams');
-      if (!redDiv || !blueDiv) return;
+/* ---------- 5. TEAMS ---------- */
+function renderTeamsFromData(teamsObj) {
+  const redDiv = document.getElementById('red-teams');
+  const blueDiv = document.getElementById('blue-teams');
+  if (!redDiv || !blueDiv) return;
 
-      // clear both
-      redDiv.innerHTML = '';
-      blueDiv.innerHTML = '';
+  redDiv.innerHTML = '';
+  blueDiv.innerHTML = '';
 
-      const redStations = ['red1', 'red2', 'red3'];
-      const blueStations = ['blue1', 'blue2', 'blue3'];
+  const redStations  = ['red1', 'red2', 'red3'];
+  const blueStations = ['blue1', 'blue2', 'blue3'];
+  const teams = teamsObj || {};
 
-      // helper to build a box
-      const makeBox = (team, isRed) => {
-        const box = document.createElement('div');
-        box.className = `team-box ${isRed ? 'red' : 'blue'}`;
-        box.textContent = team && team.trim() !== '' ? team : '\u00A0';
-        return box;
-      };
+  const makeBox = (team, isRed) => {
+    const box = document.createElement('div');
+    box.className = `team-box ${isRed ? 'red' : 'blue'}`;
+    // show blank but keep size
+    box.textContent = (team && team.trim() !== '') ? team : '\u00A0';
+    return box;
+  };
 
-      if (!isReversed) {
-        // normal: red on left, blue on right
-        redStations.forEach(st => {
-          const team = data[st];
-          redDiv.appendChild(makeBox(team, true));
-        });
-        blueStations.forEach(st => {
-          const team = data[st];
-          blueDiv.appendChild(makeBox(team, false));
-        });
-      } else {
-        // reversed: blue on left, red on right
-        // (so fill redDiv with blue teams)
-        blueStations.forEach(st => {
-          const team = data[st];
-          redDiv.appendChild(makeBox(team, false));
-        });
-        redStations.forEach(st => {
-          const team = data[st];
-          blueDiv.appendChild(makeBox(team, true));
-        });
-      }
-    })
-    .catch(err => console.error('Fetch /teams failed:', err));
+  if (!isReversed) {
+    // normal: red on left, blue on right
+    redStations.forEach(st => redDiv.appendChild(makeBox(teams[st], true)));
+    blueStations.forEach(st => blueDiv.appendChild(makeBox(teams[st], false)));
+  } else {
+    // reversed: blue on left, red on right
+    blueStations.forEach(st => redDiv.appendChild(makeBox(teams[st], false)));
+    redStations.forEach(st => blueDiv.appendChild(makeBox(teams[st], true)));
+  }
 }
 
-
-
-// Allow double-click toggle reversed
-document.addEventListener('dblclick', () => {
-  const newUrl = new URL(window.location.href);
-  const current = newUrl.searchParams.get('reversed') === 'true';
-  newUrl.searchParams.set('reversed', (!current).toString());
-  window.location.href = newUrl.toString();
-});
-
-// Startup
-initTimerSSE();
-updateTeams();
-setInterval(updateTeams, 5000);
+/* ---------- 6. START ---------- */
+initSSE();
+console.log("%cREADY – move mouse / tap / press key to unlock audio", "color:cyan");

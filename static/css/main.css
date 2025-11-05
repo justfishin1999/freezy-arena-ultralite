@@ -136,3 +136,73 @@ padding: 0.35rem 0.5rem;
     align-items: center;
   }
 }
+
+.station-row {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 7rem; /* adjust spacing between blue and red containers */
+  margin-bottom: 1rem;
+}
+
+.station-container {
+  flex: 0 0 230px;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.blue-container {
+  background-color: #0033cc;
+  color: white;
+}
+
+.red-container {
+  background-color: #cc0000;
+  color: white;
+}
+
+.station-container label {
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.station-container input {
+  background-color: white;
+  border: 1px solid #ccc;
+  color: #000;
+}
+
+.station-container .badge {
+  font-family: monospace;
+}
+
+.small.text-white-50 {
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .station-row {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .station-container {
+    width: 90%;
+    margin: 0 auto;
+  }
+}
+.ap-status-stack {
+  gap: 0.2rem;
+}
+
+.ap-status-stack .ap-status-label {
+  display: block;          /* force its own line */
+  font-size: 0.7rem;
+  line-height: 1;
+  color: rgba(255,255,255,0.6);  /* matches your text-white-50 */
+  text-align: center;
+  white-space: nowrap;
+}
