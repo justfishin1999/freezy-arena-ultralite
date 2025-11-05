@@ -6,6 +6,13 @@ A super basic **Field Management System (FMS)** designed for **practice** and **
 
 ---
 
+# ⚠️ Feature Requests and Issues
+
+ - **No scoring is planned for this application at this time.** There are lots of great alternatives that encompass scoring, like the full version of Freezy Arena at https://github.com/cpapplefamily/freesy-arena
+ - Other than that - please feel free to open an issue for feature requests or actual issues!
+
+---
+
 ## 🔧 What It Does
 
 - Configures the **Practice VH-113 Firmware** or **Offseason VH-113 Firmware** flashed field radio.
