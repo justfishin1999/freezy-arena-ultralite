@@ -61,3 +61,13 @@ A super basic **Field Management System (FMS)** designed for **practice** and **
 7. **Browse to the admin page**: http://localhost:5000
 > ✅ If Python was not added to your system PATH during installation, you may need to use the full path to `python.exe` (e.g., `C:\Python312\python.exe freezy-ultralite.py`)
 
+---
+
+## 🛠️ Contributing  
+All contributions welcome: bug fixes, UI polish, sound packs, translations.
+
+---
+
+## 📄 License  
+This project is licensed under the **MIT License** – see [`LICENSE`](LICENSE) for details.
+
