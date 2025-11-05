@@ -298,43 +298,71 @@ function renderTimer(seconds) {
 // Update per-station connection badges (via /ap_status)
 // -------------------------------------------------
 async function updateStationBadges() {
-    const badges = document.querySelectorAll('[id^="conn-"]');
+  const stationKeys = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
+  const allBadges = document.querySelectorAll('[id^="conn-"]');
 
-    try {
-        const res = await fetch('/ap_status', { cache: 'no-store' });
-        const data = await res.json();
+  let apEnabled = true;
 
-        if (data.error) throw new Error(data.error);
+  // 1) ask the server config first
+  try {
+    const cfgRes = await fetch('/config_status', { cache: 'no-store' });
+    const cfgData = await cfgRes.json();
+    apEnabled = cfgData.apEnabled ?? true;
+  } catch (err) {
+    console.warn('Could not load /config_status, assuming AP enabled.');
+  }
 
-        const statuses = data.stationStatuses || {};
-        const keys = ['red1','red2','red3','blue1','blue2','blue3'];
+  // if AP is disabled in config, just show N/A and stop
+  if (!apEnabled) {
+    allBadges.forEach(badge => {
+      badge.textContent = 'N/A';
+      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
+      badge.classList.add('bg-secondary');   // gray
+      badge.title = 'AP configuration disabled in server config';
+    });
+    return;
+  }
 
-        keys.forEach(st => {
-            const badge = document.getElementById(`conn-${st}`);
-            if (!badge) return;
+  // 2) otherwise, AP is enabled → query real AP status
+  try {
+    const res = await fetch('/ap_status', { cache: 'no-store' });
+    const data = await res.json();
 
-            const info = statuses[st] || {};
-            const ssid = info.ssid || '?';   // fallback if missing
-            const linked = !!info.isLinked;
+    if (data.error) throw new Error(data.error);
 
-            // Set SSID text
-            badge.textContent = ssid;
+    const statuses = data.stationStatuses || {};
 
-            // Set color: green if linked, red if not
-            badge.className = 'ms-2 px-2 py-1 text-white text-center rounded-0';
-            badge.classList.add(linked ? 'bg-success' : 'bg-danger');
+    stationKeys.forEach(station => {
+      const badge = document.getElementById(`conn-${station}`);
+      if (!badge) return;
 
-            // Tooltip
-            badge.title = linked
-                ? `Connected – ${info.signalDbm || 0} dBm – ${info.connectionQuality || ''}`
-                : 'Not connected';
-        });
-    } catch (e) {
-        console.error('AP status failed:', e);
-        badges.forEach(b => {
-            b.textContent = 'ERR';
-            b.className = 'ms-2 px-2 py-1 text-white text-center rounded-0 bg-dark';
-            b.title = 'AP unreachable';
-        });
-    }
+      const info = statuses[station] || {};
+      const ssid = info.ssid || 'ERR';
+      const linked = !!info.isLinked;
+
+      // keep pill shape; only change bg
+      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger', 'bg-dark');
+
+      badge.textContent = ssid;
+      if (info.ssid) {
+        badge.classList.add(linked ? 'bg-success' : 'bg-danger');
+        badge.title = linked
+          ? `Connected – ${info.signalDbm || 0} dBm${info.connectionQuality ? ' – ' + info.connectionQuality : ''}`
+          : 'Not connected';
+      } else {
+        badge.classList.add('bg-dark');
+        badge.title = 'AP enabled, but no data for this station';
+      }
+    });
+
+  } catch (err) {
+    console.error('AP status failed:', err);
+    // AP is enabled but unreachable → ERR
+    allBadges.forEach(badge => {
+      badge.textContent = 'ERR';
+      badge.classList.remove('bg-secondary', 'bg-success', 'bg-danger');
+      badge.classList.add('bg-dark');
+      badge.title = 'AP enabled in server config, but unreachable';
+    });
+  }
 }

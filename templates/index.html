@@ -11,49 +11,50 @@
 </head>
 <body>
   <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-  <div class="container">
-    <a class="navbar-brand" href="/">Freezy Arena</a>
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#mainNavbar"
-      aria-controls="mainNavbar"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="/">Freezy Arena</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-    <div class="collapse navbar-collapse" id="mainNavbar">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item dropdown">
-          <a
-            class="nav-link dropdown-toggle"
-            href="#"
-            id="displaysDropdown"
-            role="button"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            Displays
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
-            <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
-            <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
-          </ul>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/config">Config</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/">Field Control</a>
-        </li>        
-      </ul>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Displays
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
+              <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/config">Config</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/">Field Control</a>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
+
   <!-- ========== MAIN CONTAINER ========== -->
   <div class="container mb-4">
     <br>
@@ -68,27 +69,44 @@
           </div>
 
           {% for station in stations %}
-          <div class="col-md-4">
-            <label for="{{ station }}" class="form-label d-flex align-items-center">
-              {{ station.upper() }}
-              <div id="conn-{{ station }}"
-                  class="ms-2 px-2 py-1 text-white text-center rounded-0"
-                  style="min-width: 48px; font-weight: bold; font-family: monospace;">
-                ?
+          <div class="col-md-2 col-sm-4 d-flex justify-content-center">
+            <div class="text-center" style="min-width: 130px;">
+              <label for="{{ station }}" class="form-label fw-semibold mb-1" style="font-size: 0.9rem;">
+                {{ station.upper() }}
+              </label>
+
+              <div class="d-flex align-items-start justify-content-center" style="gap: 0.25rem;">
+                <!-- team number input -->
+                <input
+                  id="{{ station }}"
+                  name="{{ station }}"
+                  type="text"
+                  class="form-control form-control-sm text-center"
+                  style="width: 5rem; padding: 0.25rem 0.4rem;"
+                  placeholder="Team #"
+                  data-station="{{ station }}"
+                />
+
+                <!-- status + label stacked together -->
+                <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
+                  <span
+                    id="conn-{{ station }}"
+                    class="badge rounded-pill bg-secondary px-2 py-1 text-white fw-semibold"
+                    style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
+                    data-station-status="{{ station }}"
+                  >
+                    N/A
+                  </span>
+                  <div class="small text-muted" style="font-size: 0.7rem; line-height: 1;">
+                    AP Status
+                  </div>
+                </div>
               </div>
-            </label>
-            <input
-              id="{{ station }}"
-              name="{{ station }}"
-              type="text"
-              class="form-control"
-              placeholder="Team Number"
-              data-station="{{ station }}"
-            />
+            </div>
           </div>
           {% endfor %}
 
-          <div class="col-12 d-flex flex-wrap gap-2 mt-3">
+          <div class="col-12 d-flex flex-wrap justify-content-center gap-2 mt-3">
             <button type="submit" class="btn btn-success btn-rounded">
               Push Configuration
             </button>
@@ -103,49 +121,46 @@
       </div>
     </div>
 
-    <!-- Start Match Timer Card -->
-    <div class="card mb-4 shadow-sm">
-    <div class="card-header">Start Match Timer</div>
-    <div class="card-body">
-        <div class="d-flex align-items-center g-3">
-        <div class="me-2">
-          <p>Enter time in <b>seconds</b></p>
-        </div>
-        <!-- Smaller Duration Input -->
-        <div class="me-2 d-flex">
-            <label for="timerInput" class="form-label visually-hidden">Seconds</label>
-            <input
-            id="timerInput"
-            name="seconds"
-            type="number"
-            class="form-control form-control-sm"
-            style="width: 10rem;"
-            min="1"
-            max="9999"
-            placeholder="Seconds"
-            required
-            />
-        </div>
-
-        <!-- Start Button -->
-        <div class="me-4 d-flex gap-2">
-          <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
-            Start
-          </button>
-          <button id="stopTimer" class="btn btn-outline-danger btn-sm btn-rounded" type="button">
-            Stop
-          </button>
-        </div>
-
-        <!-- Inline Timer Display -->
-        <div>
-            <span class="card-header">Time Remaining</span>
-            <span id="timer" class="h3 fw-bold border rounded px-2 py-1">00:00</span>
-        </div>
-        </div>
-    </div>
+<!-- Start Match Timer Card -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Match Timer</span>
+    <span class="text-muted" style="font-size: 0.8rem;">Enter time in seconds</span>
+  </div>
+  <div class="card-body timer-body">
+    <!-- big timer display -->
+    <div class="timer-display mb-3">
+      <span id="timer" class="timer-value">00:00</span>
     </div>
 
+    <!-- controls -->
+    <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 mb-3">
+      <div class="timer-input-wrapper">
+        <label for="timerInput" class="form-label mb-1 small fw-semibold">Seconds</label>
+        <input
+          id="timerInput"
+          name="seconds"
+          type="number"
+          class="form-control form-control-sm text-center"
+          min="1"
+          max="9999"
+          placeholder="e.g. 135"
+          required
+          style="width: 7rem;"
+        />
+      </div>
+
+      <div class="d-flex gap-2">
+        <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
+          Start
+        </button>
+        <button id="stopTimer" class="btn btn-outline-danger btn-sm btn-rounded" type="button">
+          Stop
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
     <!-- Logs Card -->
     <div class="card mb-4 shadow-sm">
@@ -165,9 +180,7 @@
 
   <!-- Bootstrap & jQuery Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
 </html>
