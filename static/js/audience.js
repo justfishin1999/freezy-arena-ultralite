@@ -105,28 +105,47 @@ function updateTeams() {
     .then(data => {
       const redDiv = document.getElementById('red-teams');
       const blueDiv = document.getElementById('blue-teams');
+      if (!redDiv || !blueDiv) return;
+
+      // clear both
       redDiv.innerHTML = '';
       blueDiv.innerHTML = '';
 
       const redStations = ['red1', 'red2', 'red3'];
       const blueStations = ['blue1', 'blue2', 'blue3'];
 
-      redStations.forEach(station => {
-        const team = data[station];
+      // helper to build a box
+      const makeBox = (team, isRed) => {
         const box = document.createElement('div');
-        box.className = 'team-box red';
+        box.className = `team-box ${isRed ? 'red' : 'blue'}`;
         box.textContent = team && team.trim() !== '' ? team : '\u00A0';
-        redDiv.appendChild(box);
-      });
+        return box;
+      };
 
-      blueStations.forEach(station => {
-        const team = data[station];
-        const box = document.createElement('div');
-        box.className = 'team-box blue';
-        box.textContent = team && team.trim() !== '' ? team : '\u00A0';
-        blueDiv.appendChild(box);
-      });
-    });
+      if (!isReversed) {
+        // normal: red on left, blue on right
+        redStations.forEach(st => {
+          const team = data[st];
+          redDiv.appendChild(makeBox(team, true));
+        });
+        blueStations.forEach(st => {
+          const team = data[st];
+          blueDiv.appendChild(makeBox(team, false));
+        });
+      } else {
+        // reversed: blue on left, red on right
+        // (so fill redDiv with blue teams)
+        blueStations.forEach(st => {
+          const team = data[st];
+          redDiv.appendChild(makeBox(team, false));
+        });
+        redStations.forEach(st => {
+          const team = data[st];
+          blueDiv.appendChild(makeBox(team, true));
+        });
+      }
+    })
+    .catch(err => console.error('Fetch /teams failed:', err));
 }
 
 
