@@ -82,7 +82,7 @@ audience_display_teams = {key: "" for key in STATION_KEYS}
 # flask routes
 @app.route('/')
 def index():
-    return render_template('index.html', stations=STATION_KEYS)
+    return render_template('index.html', stations=STATION_KEYS, ap_ip=runtime_config.get("ap_ip"))
 
 @app.route('/config', methods=['GET'])
 def config_page():
@@ -334,6 +334,19 @@ def timer_status():
 def get_logs():
     return jsonify(logs)
 
+# ------------------------------------------------------------------
+# Route: proxy /status from external AP
+# ------------------------------------------------------------------
+@app.route('/ap_status')
+def ap_status_proxy():
+    """
+    Used by app.js to get live AP status.
+    Uses runtime_config['ap_ip'].
+    """
+    ap_ip = runtime_config.get("ap_ip", "").strip()
+    data = fetch_ap_status(ap_ip)
+    return jsonify(data)
+
 @app.route('/wpa_key_status')
 def wpa_key_status():
     return jsonify({'loaded': len(team_config) > 0})
@@ -405,6 +418,37 @@ no ip dhcp pool dhcp{vlan}
     tn.write(b"end\ncopy running-config startup-config\n\nexit\n")
     tn.read_all().decode()
 
+# ------------------------------------------------------------------
+# Helper: fetch status from external AP
+# ------------------------------------------------------------------
+def fetch_ap_status(ap_ip: str):
+    """
+    Fetch /status from the AP.
+    Returns dict on success, or error dict on failure.
+    """
+    if not ap_ip or not ap_ip.strip():
+        return {"error": "AP IP not configured"}
 
+    url = f"http://{ap_ip.strip()}/status"
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.exceptions.Timeout:
+        log("AP status: timeout (5s)")
+        return {"error": "AP timeout (5s)", "ap_ip": ap_ip}
+    except requests.exceptions.ConnectionError:
+        log(f"AP status: cannot reach {ap_ip}")
+        return {"error": "Cannot reach AP", "ap_ip": ap_ip}
+    except requests.exceptions.HTTPError:
+        log(f"AP status: HTTP {resp.status_code}")
+        return {"error": f"HTTP {resp.status_code}", "ap_ip": ap_ip}
+    except ValueError:
+        log("AP status: invalid JSON")
+        return {"error": "Invalid JSON from AP", "raw": resp.text[:200]}
+    except Exception as e:
+        log(f"AP status: unexpected error: {e}")
+        return {"error": "Unexpected error", "details": str(e)}
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

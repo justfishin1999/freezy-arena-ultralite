@@ -62,15 +62,28 @@
       <div class="card-header">Station Assignments</div>
       <div class="card-body">
         <form id="configForm" class="row g-3">
+          <!-- AP IP (optional display) -->
+          <div class="col-12 mb-3">
+            <label class="form-label">AP IP: <strong>{{ ap_ip or 'Not set' }}</strong></label>
+          </div>
+
           {% for station in stations %}
           <div class="col-md-4">
-            <label for="{{ station }}" class="form-label">{{ station.upper() }}</label>
+            <label for="{{ station }}" class="form-label d-flex align-items-center">
+              {{ station.upper() }}
+              <div id="conn-{{ station }}"
+                  class="ms-2 px-2 py-1 text-white text-center rounded-0"
+                  style="min-width: 48px; font-weight: bold; font-family: monospace;">
+                ?
+              </div>
+            </label>
             <input
               id="{{ station }}"
               name="{{ station }}"
               type="text"
               class="form-control"
               placeholder="Team Number"
+              data-station="{{ station }}"
             />
           </div>
           {% endfor %}
