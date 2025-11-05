@@ -1,0 +1,76 @@
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #00FF00;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    #wall-disp-body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #747474;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    #bottom-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      padding: 20px 40px;
+      margin-bottom: 40px;
+      background-color: white;
+      border-radius: 20px;
+      box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
+      max-width: 90vw;
+    }
+
+    #timer {
+      font-size: 48px;
+      font-weight: bold;
+      color: black;
+    }
+
+    #teams {
+      display: flex;
+      gap: 10px;
+    }
+
+    .team-box {
+      padding: 10px 20px;
+      font-size: 48px;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    .red { background-color: red; }
+    .blue { background-color: blue; }
+
+    #alert {
+      display: none;
+      position: fixed;
+      top: 20px;
+      padding: 15px;
+      background-color: #ff4444;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 5px;
+      animation: flash 1s infinite;
+    }
+
+    @keyframes flash {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }

@@ -213,14 +213,13 @@ function initTimerStream() {
         };
 
         es.onerror = function () {
-            console.warn('SSE connection lost, falling back to polling.');
+            console.warn('SSE connection lost');
             es.close();
-            // fallback to poll
-            setInterval(updateTimer, 1000);
+            setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
         };
     } else {
-        // no SSE support
-        setInterval(updateTimer, 1000);
+        // no SSE, try again
+        setTimeout(() => initTimerStream(Math.min(retryDelayMs * 2, 10000)), retryDelayMs);
     }
 }
 
@@ -278,16 +277,6 @@ function formatTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// fallback: pull timer status from backend and update display
-async function updateTimer() {
-    try {
-        const res = await fetch('/timer_status');
-        const data = await res.json();
-        renderTimer(data.remaining || 0);
-    } catch (e) {
-        renderTimer(null);
-    }
-}
 
 // render timer value
 function renderTimer(seconds) {
