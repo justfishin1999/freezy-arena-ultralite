@@ -1,164 +1,132 @@
-let hasBuzzerPlayed = false;
-let lastRemaining = null;
-const urlParams = new URLSearchParams(window.location.search);
-const isReversed = urlParams.get('reversed')?.toLowerCase() === 'true';
+/* --------------------------------------------------------------
+   audience.js – buzzer works on EVERY match
+   -------------------------------------------------------------- */
+console.log("%cAUDIENCE.JS LOADED", "color:lime;font-size:20px");
 
-// Unlock audio on first click
-function unlockAudio() {
-  const buzzer = document.getElementById('buzzer');
-  if (!buzzer) return;
-  buzzer.play().then(() => {
-    buzzer.pause();
-    buzzer.currentTime = 0;
-    window.removeEventListener('click', unlockAudio);
+let lastRemaining = null;
+let audioUnlocked = false;
+let matchEnded = false;          // <-- NEW: resets after match stops
+
+/* ---------- 1. UNLOCK AUDIO (once per page load) ---------- */
+function unlockAudioContext() {
+  if (audioUnlocked) return;
+  console.log("UNLOCK: Trying to unlock audio context…");
+  const u = document.getElementById('unlocker');
+  u.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  u.play().then(() => {
+    console.log("%cUNLOCK: SUCCESS – Audio context unlocked", "color:green;font-weight:bold");
+    audioUnlocked = true;
   }).catch(() => {});
 }
-window.addEventListener('click', unlockAudio);
+['mousedown','touchstart','keydown','pointerdown'].forEach(ev =>
+  window.addEventListener(ev, unlockAudioContext, {once:true, passive:true})
+);
 
-function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-}
-
-function renderTimer(seconds) {
-  document.getElementById('timer').textContent = formatTime(seconds);
-}
-
-function showAlert() {
-  const alert = document.getElementById('alert');
-  if (!alert) return;
-  alert.style.display = 'block';
-  setTimeout(() => alert.style.display = 'none', 5000);
-}
-
+/* ---------- 2. BUZZER LOGIC ---------- */
 function maybeBuzzFromData(data) {
-  const running = !!data.running;
-  const remaining = typeof data.remaining === 'number' ? data.remaining : 0;
+  const running   = !!data.running;
+  const remaining = Math.floor(data.remaining || 0);
 
-  const hitZeroThisTick = running && lastRemaining !== null && lastRemaining > 0 && remaining <= 0;
-  const serverWantsBuzz = running && data.buzzer === true;
+  // Detect timer crossing zero OR server explicitly says "buzz"
+  const hitZero   = running && lastRemaining !== null && lastRemaining > 0 && remaining <= 0;
+  const serverBuzz = running && data.buzzer === true;
 
-  if ((hitZeroThisTick || serverWantsBuzz) && !hasBuzzerPlayed) {
+  console.log("BUZZ CHECK:", {running, remaining, hitZero, serverBuzz, matchEnded});
+
+  // ---------- PLAY ----------
+  if ((hitZero || serverBuzz) && !matchEnded) {
+    console.log("%cBUZZER: TRIGGERED – playing /static/end.wav", "color:orange;font-size:16px");
     const buzzer = document.getElementById('buzzer');
-    if (buzzer) {
-      buzzer.play().catch(err => {
-        console.error('end.wav playback failed:', err);
+    if (!buzzer) { console.error("BUZZER: element missing"); return; }
+
+    if (!audioUnlocked) unlockAudioContext();
+
+    buzzer.currentTime = 0;
+    const p = buzzer.play();
+    if (p) {
+      p.then(() => {
+        console.log("%cBUZZER: PLAYING NOW", "color:lime;font-size:18px");
+        matchEnded = true;          // <-- block further plays THIS match
+      }).catch(err => {
+        console.error("%cBUZZER: BLOCKED", "color:red;font-weight:bold", err);
         showAlert();
+        matchEnded = true;
       });
-    } else {
-      showAlert();
     }
-    hasBuzzerPlayed = true;
+  }
+
+  // ---------- RESET for next match ----------
+  if (!running && matchEnded) {
+    console.log("%cMATCH STOPPED – resetting buzzer flag", "color:cyan");
+    matchEnded = false;           // <-- ready for next countdown
   }
 
   lastRemaining = remaining;
 }
 
-// SSE with persistent reconnect
-function initTimerSSE(retryDelayMs = 1500) {
-  if (!window.EventSource) {
-    console.error('EventSource not supported; cannot start SSE.');
-    return;
-  }
+/* ---------- 3. TIMER DISPLAY ---------- */
+function formatTime(s) {
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const sec = String(Math.floor(s%60)).padStart(2,'0');
+  return `${m}:${sec}`;
+}
+function renderTimer(s) { document.getElementById('timer').textContent = formatTime(s); }
+function showAlert() {
+  console.warn("BUZZER: visual fallback");
+  const a = document.getElementById('alert');
+  a.style.display = 'block';
+  setTimeout(() => a.style.display = 'none', 5000);
+}
 
-  const es = new EventSource('/timer_stream');
+/* ---------- 4. SSE ---------- */
+function initSSE() {
+  console.log("SSE: connecting to /stream …");
+  const es = new EventSource('/stream');
 
-  es.onmessage = (event) => {
+  es.addEventListener('timer', e => {
     try {
-      const data = JSON.parse(event.data);
-      const running = !!data.running;
-      const remaining = Math.floor(data.remaining || 0);
-
-      if (!running) {
-        renderTimer(0);
-        lastRemaining = 0;
-      } else {
-        renderTimer(remaining);
-      }
-
-      if (typeof data.event_name === 'string') {
-        const el = document.getElementById('event-name');
-      if (el) {
-        el.textContent = data.event_name;
-      }
-    }
-
-      maybeBuzzFromData(data);
-    } catch (err) {
-      console.error('Bad SSE data:', err);
-    }
-  };
+      const d = JSON.parse(e.data);
+      renderTimer(d.running ? Math.max(0, Math.floor(d.remaining)) : 0);
+      if (d.event_name) document.getElementById('event-name').textContent = d.event_name;
+      maybeBuzzFromData(d);
+    } catch (_) {}
+  });
 
   es.onerror = () => {
-    console.warn('SSE disconnected, retrying...');
+    console.warn("SSE: reconnecting…");
     es.close();
-    setTimeout(() => {
-      initTimerSSE(Math.min(retryDelayMs * 2, 10000));
-    }, retryDelayMs);
+    setTimeout(initSSE, 2000);
   };
 }
 
+/* ---------- 5. TEAMS ---------- */
 function updateTeams() {
-  fetch('/teams')
-    .then(res => res.json())
-    .then(data => {
-      const redDiv = document.getElementById('red-teams');
-      const blueDiv = document.getElementById('blue-teams');
-      if (!redDiv || !blueDiv) return;
+  fetch('/teams').then(r=>r.json()).then(data => {
+    const red = document.getElementById('red-teams');
+    const blue = document.getElementById('blue-teams');
+    red.innerHTML = blue.innerHTML = '';
 
-      // clear both
-      redDiv.innerHTML = '';
-      blueDiv.innerHTML = '';
-
-      const redStations = ['red1', 'red2', 'red3'];
-      const blueStations = ['blue1', 'blue2', 'blue3'];
-
-      // helper to build a box
-      const makeBox = (team, isRed) => {
-        const box = document.createElement('div');
-        box.className = `team-box ${isRed ? 'red' : 'blue'}`;
-        box.textContent = team && team.trim() !== '' ? team : '\u00A0';
-        return box;
-      };
-
-      if (!isReversed) {
-        // normal: red on left, blue on right
-        redStations.forEach(st => {
-          const team = data[st];
-          redDiv.appendChild(makeBox(team, true));
-        });
-        blueStations.forEach(st => {
-          const team = data[st];
-          blueDiv.appendChild(makeBox(team, false));
-        });
-      } else {
-        // reversed: blue on left, red on right
-        // (so fill redDiv with blue teams)
-        blueStations.forEach(st => {
-          const team = data[st];
-          redDiv.appendChild(makeBox(team, false));
-        });
-        redStations.forEach(st => {
-          const team = data[st];
-          blueDiv.appendChild(makeBox(team, true));
-        });
-      }
-    })
-    .catch(err => console.error('Fetch /teams failed:', err));
+    const make = (team, isRed) => {
+      const el = document.createElement('div');
+      el.className = `team-box ${isRed?'red':'blue'}`;
+      el.textContent = team?.trim() || ' ';
+      return el;
+    };
+    const reds = ['red1','red2','red3'];
+    const blues = ['blue1','blue2','blue3'];
+    const rev = new URLSearchParams(location.search).get('reversed') === 'true';
+    if (!rev) {
+      reds.forEach(s=>red.appendChild(make(data[s],true)));
+      blues.forEach(s=>blue.appendChild(make(data[s],false)));
+    } else {
+      blues.forEach(s=>red.appendChild(make(data[s],false)));
+      reds.forEach(s=>blue.appendChild(make(data[s],true)));
+    }
+  });
 }
 
-
-
-// Allow double-click toggle reversed
-document.addEventListener('dblclick', () => {
-  const newUrl = new URL(window.location.href);
-  const current = newUrl.searchParams.get('reversed') === 'true';
-  newUrl.searchParams.set('reversed', (!current).toString());
-  window.location.href = newUrl.toString();
-});
-
-// Startup
-initTimerSSE();
+/* ---------- 6. START ---------- */
+initSSE();
 updateTeams();
 setInterval(updateTeams, 5000);
+console.log("%cREADY – move mouse / tap / press key to unlock audio", "color:cyan");
