@@ -25,6 +25,7 @@ default_config = {
     "switch_password": "1234Five",
     "enable_ap": True,
     "enable_switch": True,
+    "event_name": "Super Cool Event",
 }
 
 def load_config():
@@ -90,12 +91,12 @@ audience_display_teams = {key: "" for key in STATION_KEYS}
 def index():
     return render_template('index.html', stations=STATION_KEYS, ap_ip=runtime_config.get("ap_ip"), ap_enabled=runtime_config.get("enable_ap"))
 
-@app.route('/config', methods=['GET'])
+@app.route('/setup', methods=['GET'])
 def config_page():
     # render the config form with current values
-    return render_template('config.html', cfg=runtime_config)
+    return render_template('setup.html', cfg=runtime_config)
 
-@app.route('/config', methods=['POST'])
+@app.route('/setup', methods=['POST'])
 def save_config_route():
     global runtime_config
     # get values from form
@@ -104,6 +105,7 @@ def save_config_route():
     switch_password = request.form.get('switch_password', '').strip()
     enable_ap = request.form.get('enable_ap') == 'on'
     enable_switch = request.form.get('enable_switch') == 'on'
+    event_name = request.form.get('event_name', '').strip()
 
     # update in-memory
     runtime_config['ap_ip'] = ap_ip or runtime_config['ap_ip']
@@ -112,6 +114,7 @@ def save_config_route():
     runtime_config['switch_password'] = switch_password
     runtime_config['enable_ap'] = enable_ap
     runtime_config['enable_switch'] = enable_switch
+    runtime_config['event_name'] = event_name
 
     save_config(runtime_config)
     log("Configuration settings updated.")
@@ -311,7 +314,8 @@ def timer_stream():
             payload = json.dumps({
                 "remaining": remaining,
                 "running": running,
-                "buzzer": trigger_buzzer
+                "buzzer": trigger_buzzer,
+                "event_name": runtime_config.get("event_name","")
             })
             yield f"data: {payload}\n\n"
             time.sleep(1)
@@ -340,9 +344,6 @@ def timer_status():
 def get_logs():
     return jsonify(logs)
 
-# ------------------------------------------------------------------
-# Route: proxy /status from external AP
-# ------------------------------------------------------------------
 @app.route('/ap_status')
 def ap_status_proxy():
     """
@@ -455,6 +456,64 @@ def fetch_ap_status(ap_ip: str):
         except Exception as e:
             log(f"AP status: unexpected error: {e}")
             return {"error": "Unexpected error", "details": str(e)}
+        
+@app.route('/stream')
+def unified_stream():
+    def event_stream():
+        global buzzer_triggered
+
+        # let browsers know the stream is alive
+        yield ": ok\n\n"
+
+        # we’ll keep track of the last log length so we only send new ones
+        last_log_len = len(logs)
+
+        while True:
+            # 1) timer
+            remaining, running = get_timer_state()
+            trigger_buzzer = False
+            if running and remaining <= 0 and not buzzer_triggered:
+                trigger_buzzer = True
+                buzzer_triggered = True
+
+            timer_payload = json.dumps({
+                "remaining": remaining,
+                "running": running,
+                "buzzer": trigger_buzzer,
+                "event_name": runtime_config.get("event_name","")
+
+            })
+            yield f"event: timer\ndata: {timer_payload}\n\n"
+
+            # 2) logs (only if new)
+            current_len = len(logs)
+            if current_len != last_log_len:
+                # send only the last ~100 to avoid giant payloads
+                recent_logs = logs[-100:]
+                logs_payload = json.dumps(recent_logs)
+                yield f"event: logs\ndata: {logs_payload}\n\n"
+                last_log_len = current_len
+
+            # 3) AP status (only if AP is enabled)
+            if runtime_config.get("enable_ap", True):
+                ap_ip = runtime_config.get("ap_ip", "").strip()
+                ap_data = fetch_ap_status(ap_ip)
+                # include apEnabled so frontend can show N/A if disabled
+                ap_data["apEnabled"] = True
+                ap_payload = json.dumps(ap_data)
+                yield f"event: apstatus\ndata: {ap_payload}\n\n"
+            else:
+                # tell frontend AP is disabled
+                ap_payload = json.dumps({"apEnabled": False})
+                yield f"event: apstatus\ndata: {ap_payload}\n\n"
+
+            time.sleep(1)
+
+    resp = Response(stream_with_context(event_stream()), mimetype='text/event-stream')
+    resp.headers['Cache-Control'] = 'no-cache'
+    resp.headers['X-Accel-Buffering'] = 'no'
+    return resp
+
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
