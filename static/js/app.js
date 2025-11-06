@@ -7,6 +7,14 @@ $(function () {
     // set up timer: prefer SSE
     initUnifiedStream();
 
+    // On page load, restore last timer value from localStorage
+    const lastTimerSeconds = localStorage.getItem('lastTimerSeconds');
+    if (lastTimerSeconds) {
+        $('#timerInput').val(lastTimerSeconds);
+        // Optionally update the display timer preview (static, not the running one)
+        renderTimer(parseInt(lastTimerSeconds, 10));
+    }
+
     // =========================
     // WPA CSV IMPORT (config page)
     // =========================
@@ -156,6 +164,15 @@ $(function () {
     if ($startTimer.length) {
         $startTimer.on('click', async () => {
             const seconds = $('#timerInput').val();
+            if (!seconds || isNaN(seconds)) {
+                // Optional: Add client-side validation to prevent invalid starts
+                alert('Please enter a valid number of seconds.');
+                return;
+            }
+
+            // Save to localStorage before starting
+            localStorage.setItem('lastTimerSeconds', seconds);
+
             try {
                 await $.post('/start_timer', { seconds });
             } catch (e) {
@@ -389,6 +406,8 @@ document.querySelectorAll('.timer-preset').forEach(btn => {
 
     if (input && timerDisplay && !isNaN(seconds)) {
       input.value = seconds;
+      // Save preset selection to localStorage
+      localStorage.setItem('lastTimerSeconds', seconds);
       const minutes = Math.floor(seconds / 60);
       const secs = seconds % 60;
       timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
