@@ -200,6 +200,16 @@ def push_config():
     if running:
         return jsonify({"status": "error", "message": "Cannot push config while timer is running!"})
 
+    global station_assignments
+    data = request.get_json() or {}
+
+    # 1. keep a copy of the team numbers
+    new_assign = {}
+    for key in STATION_KEYS:
+        new_assign[key] = data.get(key, "").strip()
+    station_assignments = new_assign
+    save_station_assignments(station_assignments)
+
     data = request.get_json()
     stations = {}
     switch_entries = {}
@@ -235,6 +245,31 @@ def push_config():
     except Exception as e:
         log(f"Push config error: {e}")
         return jsonify({"status": "error", "message": str(e)})
+
+# -------------------------------------------------
+#  NEW: persist last-used station assignments
+# -------------------------------------------------
+STATION_ASSIGNMENTS_FILE = "station_assignments.json"
+
+@app.route('/get_station_assignments')
+def get_station_assignments():
+    return jsonify(station_assignments)
+
+def load_station_assignments():
+    if os.path.exists(STATION_ASSIGNMENTS_FILE):
+        try:
+            with open(STATION_ASSIGNMENTS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {k: "" for k in STATION_KEYS}
+
+def save_station_assignments(data: dict):
+    with open(STATION_ASSIGNMENTS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+# load at startup
+station_assignments = load_station_assignments()
 
 def update_display_internal(stations):
     for station in STATION_KEYS:

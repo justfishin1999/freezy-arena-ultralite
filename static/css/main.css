@@ -47,6 +47,9 @@ background-color: #28a745 !important;
 .bg-danger {
 background-color: #dc3545 !important;
 }
+.bg-configured {
+background-color: #fffb00 !important;
+}
 .log-box {
 background: #ffffff;
 padding: 1rem;

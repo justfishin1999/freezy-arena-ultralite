@@ -7,6 +7,20 @@ $(function () {
     // set up timer: prefer SSE
     initUnifiedStream();
 
+    // -------------------------------------------------
+    //  Load saved station assignments (persisted on server)
+    // -------------------------------------------------
+    $.get('/get_station_assignments')
+    .done(function (data) {
+        Object.keys(data).forEach(function (key) {
+            const $input = $('#' + key);
+            if ($input.length) $input.val(data[key]);
+        });
+        // force badge update now that inputs are filled
+        refreshApStatusBadges();
+    })
+    .fail(function () { console.warn('Could not load saved assignments'); });
+
     // =========================
     // WPA CSV IMPORT (config page)
     // =========================
@@ -289,6 +303,7 @@ function initUnifiedStream(retryDelayMs = 1500) {
     es.addEventListener('apstatus', (event) => {
         try {
             const data = JSON.parse(event.data);
+            window.currentApData = data;           // <-- NEW
             sseUpdateStationBadges(data);
         } catch (e) {
             console.error('Bad apstatus SSE data', e);
@@ -347,12 +362,25 @@ function sseUpdateStationBadges(apData) {
         badge.textContent = ssid;
 
         if (info.ssid) {
+            const stationKey = station;                 // e.g. "red1", "blue2"
+            const inputEl    = document.getElementById(stationKey);
+            const teamNum    = inputEl ? (inputEl.value || '').trim() : '';
+
+            // 2. Trim the SSID reported by the AP
+            const ssidTrimmed = (info.ssid || '').trim();
+            
             if (linked) {
+                // Fully connected
                 badge.classList.add('bg-success', 'text-white');
                 badge.title =
                     `Connected – ${info.signalDbm || 0} dBm` +
                     (info.connectionQuality ? ` – ${info.connectionQuality}` : '');
+            } else if (ssidTrimmed === teamNum && teamNum !== '') {
+                // SSID matches the team number entered in the form, but not linked yet
+                badge.classList.add('bg-configured', 'text-black');
+                badge.title = 'Configured – waiting for client to connect';
             } else {
+                // SSID present but does NOT match the assigned team
                 badge.classList.add('bg-danger', 'text-white');
                 badge.title = 'Not connected';
             }
@@ -364,6 +392,14 @@ function sseUpdateStationBadges(apData) {
     });
 }
 
+function refreshApStatusBadges() {
+    // The server sends the current AP status every second via SSE.
+    // If the SSE connection is not yet open we just skip – it will
+    // be called automatically when the first `apstatus` event arrives.
+    if (window.currentApData) {
+        sseUpdateStationBadges(window.currentApData);
+    }
+}
 
 (function () {
   const params = new URLSearchParams(window.location.search);
