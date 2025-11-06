@@ -125,3 +125,22 @@
       color: #000;
       white-space: nowrap;
     }
+
+.mute-icon {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  font-size: 2rem;
+  color: #ff4444;
+  opacity: 0.8;
+  cursor: pointer;
+  z-index: 9999;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+.mute-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.mute-icon.hidden {
+  display: none;
+}

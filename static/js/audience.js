@@ -20,11 +20,22 @@ function unlockAudioContext() {
   u.play().then(() => {
     console.log("%cUNLOCK: SUCCESS – Audio context unlocked", "color:green;font-weight:bold");
     audioUnlocked = true;
+    updateMuteIcon();
   }).catch(() => {});
 }
 ['mousedown','touchstart','keydown','pointerdown'].forEach(ev =>
   window.addEventListener(ev, unlockAudioContext, {once:true, passive:true})
 );
+
+function updateMuteIcon() {
+  const icon = document.getElementById('mute-indicator');
+  if (!icon) return;
+  if (audioUnlocked) {
+    icon.classList.add('hidden');
+  } else {
+    icon.classList.remove('hidden');
+  }
+}
 
 /* ---------- 2. BUZZER LOGIC ---------- */
 function maybeBuzzFromData(data) {
@@ -144,4 +155,5 @@ function renderTeamsFromData(teamsObj) {
 
 /* ---------- 6. START ---------- */
 initSSE();
+updateMuteIcon();
 console.log("%cREADY – move mouse / tap / press key to unlock audio", "color:cyan");
