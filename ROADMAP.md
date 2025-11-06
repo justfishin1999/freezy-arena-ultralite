@@ -31,5 +31,6 @@
 |------|-------|
 | **Scorekeeping Module** | Optional basic scoring overlay |
 | **Kiosk Mode** | Lockdown UI for public computers |
+| **Announcer Displays** | Display that will pull current teams on field and get data from TBA including team name, city, etc |
 
 ---
