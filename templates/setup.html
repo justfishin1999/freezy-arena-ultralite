@@ -84,12 +84,14 @@
             <label class="form-check-label" for="enable_ap">
               Enable AP Configuration
             </label>
+            <p><i>AP Configuration can be enabled without Switch Configuration.</i></p>
           </div>
           <div class="col-md-6 form-check mt-3">
             <input class="form-check-input" type="checkbox" id="enable_switch" name="enable_switch" {% if cfg.enable_switch %}checked{% endif %}>
             <label class="form-check-label" for="enable_switch">
               Enable Switch Configuration
             </label>
+            <p><i>Switch Configuration will remain hidden unless AP Configuration is enabled.</i></p>
           </div>
           <hr>
           <div class="mb-3">

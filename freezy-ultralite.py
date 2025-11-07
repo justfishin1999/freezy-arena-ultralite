@@ -89,7 +89,7 @@ audience_display_teams = {key: "" for key in STATION_KEYS}
 # flask routes
 @app.route('/')
 def index():
-    return render_template('index.html', stations=STATION_KEYS, ap_ip=runtime_config.get("ap_ip"), ap_enabled=runtime_config.get("enable_ap"))
+    return render_template('index.html', stations=STATION_KEYS, ap_ip=runtime_config.get("ap_ip"), ap_enabled=runtime_config.get("enable_ap"), switch_enabled=runtime_config.get("enable_switch"))
 
 @app.route('/setup', methods=['GET'])
 def config_page():
