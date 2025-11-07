@@ -450,3 +450,109 @@ document.querySelectorAll('.timer-preset').forEach(btn => {
     }
   });
 });
+
+// ============================
+// MATCH LIST (left sidebar)
+// ============================
+async function fetchScheduleAndRender() {
+  try {
+    const res = await fetch('/schedule/data', { cache: 'no-store' });
+    const data = await res.json();
+    renderMatchList(data.matches || []);
+  } catch (err) {
+    console.error('Failed to load schedule:', err);
+    const matchList = document.getElementById('matchList');
+    if (matchList) {
+      matchList.innerHTML = '<div class="text-muted small p-2">No schedule found.</div>';
+    }
+  }
+}
+
+function renderMatchList(matches) {
+  const matchList = document.getElementById('matchList');
+  if (!matchList) return;
+
+  matchList.innerHTML = '';
+
+  matches.forEach(m => {
+    const li = document.createElement('div');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
+
+    const timeStr = m.start_time
+      ? new Date(m.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+      : '-';
+
+    // left text
+    const info = document.createElement('div');
+    info.className = 'd-flex flex-column';
+    info.innerHTML = `
+      <span class="${m.done ? 'text-muted text-decoration-line-through' : ''}">
+        Match ${m.match_id} &mdash; ${timeStr}
+      </span>
+      <span class="small text-muted">
+        R: ${(m.red || []).join(', ') || '-'} &nbsp; B: ${(m.blue || []).join(', ') || '-'}
+      </span>
+    `;
+
+    // load button
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm ' + (m.done ? 'btn-outline-secondary' : 'btn-outline-primary');
+    btn.textContent = 'Load';
+    btn.addEventListener('click', () => {
+      loadMatchIntoStations(m);
+      // mark done in backend
+      markMatchDone(m.match_id, true);
+    });
+
+    li.appendChild(info);
+    li.appendChild(btn);
+
+    matchList.appendChild(li);
+  });
+}
+
+function loadMatchIntoStations(matchObj) {
+  // matchObj.red is array of 3, matchObj.blue is array of 3
+  const red = matchObj.red || [];
+  const blue = matchObj.blue || [];
+
+  // your inputs:
+  // red1, red2, red3, blue1, blue2, blue3
+  const r1 = document.getElementById('red1');
+  const r2 = document.getElementById('red2');
+  const r3 = document.getElementById('red3');
+  const b1 = document.getElementById('blue1');
+  const b2 = document.getElementById('blue2');
+  const b3 = document.getElementById('blue3');
+
+  if (r1) r1.value = red[0] || '';
+  if (r2) r2.value = red[1] || '';
+  if (r3) r3.value = red[2] || '';
+  if (b1) b1.value = blue[0] || '';
+  if (b2) b2.value = blue[1] || '';
+  if (b3) b3.value = blue[2] || '';
+}
+
+async function markMatchDone(matchId, done) {
+  try {
+    await fetch('/schedule/mark_done', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ match_id: matchId, done })
+    });
+    // re-render so it goes gray/strikethrough
+    fetchScheduleAndRender();
+  } catch (err) {
+    console.error('Failed to mark match done:', err);
+  }
+}
+
+// hook refresh button
+document.addEventListener('DOMContentLoaded', () => {
+  const refBtn = document.getElementById('refreshSchedule');
+  if (refBtn) {
+    refBtn.addEventListener('click', fetchScheduleAndRender);
+  }
+  // initial load
+  fetchScheduleAndRender();
+});

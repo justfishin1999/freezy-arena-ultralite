@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Freezy Arena Ultralite - Match Scheduling</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="shortcut icon" href="/static/img/favicon.ico">
+  <link rel="stylesheet" href="/static/css/match_scheduling.css">
+  <!--<link rel="stylesheet" href="/static/css/main.css">-->
+</head>
+<body>
+  <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container">
+      <img src="/static/img/FZUL-Icon.png" alt="Freezy Ultralite Icon" class="me-2 nav-icon">
+      <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Displays
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
+              <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
+              <li><a class="dropdown-item" href="/schedule/audience" target="_blank">Match Schedule Display</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Setup
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/setup" >Arena Configuration</a></li>
+              <li><a class="dropdown-item" href="/schedule" >Match Scheduling</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/">Field Control</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+<div class="container py-3">
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">Schedule Settings</div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Teams (comma separated, min 6)</label>
+            <textarea id="teamsInput" class="form-control" rows="3" placeholder="2052, 2847, 3058, 1816, 2502, 2175"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Matches per team</label>
+            <input id="matchesPerTeam" type="number" class="form-control" value="3" min="1" max="20">
+          </div>
+        <div class="mb-3">
+        <label class="form-label">Blocks</label>
+
+        <!-- Label row -->
+        <div class="d-flex gap-2 mb-1 small text-muted fw-semibold justify-content-between px-1">
+            <div style="flex:1;">Start</div>
+            <div style="flex:1;">End</div>
+            <div style="width:7rem; text-align:center;">Gap (minutes)</div>
+        </div>
+
+        <div id="blocksContainer" class="d-flex flex-column gap-2">
+            <!-- Default block -->
+            <div class="block-row d-flex gap-2">
+            <input type="time" class="form-control form-control-sm block-start" value="08:00">
+            <input type="time" class="form-control form-control-sm block-end" value="12:00">
+            <input type="number" class="form-control form-control-sm block-gap" value="8" title="Gap in minutes">
+            </div>
+        </div>
+
+        <button id="addBlock" class="btn btn-outline-primary btn-sm mt-1">+ Add block</button>
+        </div>
+
+        <!-- Buttons -->
+        <button id="generateSchedule" class="btn btn-success w-100 mb-2">
+        Generate Schedule
+        </button>
+
+        <button id="clearSchedule" class="btn btn-outline-danger w-100 mb-2">
+        Clear Schedule
+        </button>
+
+        <a href="/schedule/print" target="_blank" class="btn btn-outline-secondary w-100 mb-2">
+        Print Schedule
+        </a>
+
+        <div id="scheduleStatus" class="small text-muted"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Current Schedule</span>
+          <a href="/schedule/audience" target="_blank" class="btn btn-outline-secondary btn-sm">Open Audience View</a>
+        </div>
+        <div class="card-body">
+          <table class="table table-sm table-striped" id="scheduleTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Time</th>
+                <th>Red</th>
+                <th>Blue</th>
+              </tr>
+            </thead>
+            <tbody>
+            <!-- filled by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/match_scheduling.js"></script>
+</body>
+</html>
