@@ -7,6 +7,22 @@ flex-direction: column;
 .navbar-brand {
 font-weight: 600;
 font-size: 1.5rem;
+height: 40px;
+}
+/* Auto-shrink navbar icon to fit navbar height */
+.nav-icon {
+  height: 36px;           /* target height */
+  width: auto;
+  max-width: 100px;       /* prevent overly wide icons */
+  object-fit: contain;    /* preserve aspect ratio */
+  image-rendering: -webkit-optimize-contrast; /* sharper on small sizes */
+}
+/* Responsive: smaller on mobile */
+@media (max-width: 576px) {
+  .nav-icon {
+    height: 30px;
+    max-width: 80px;
+  }
 }
 .card {
 border: none;
