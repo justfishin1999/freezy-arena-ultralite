@@ -244,13 +244,13 @@
       <div class="col-12 d-flex flex-wrap justify-content-center gap-3 mt-4">
         {% if ap_enabled %}
         <button type="submit" class="btn btn-success btn-rounded">
-          Push Configuration
+          Update Network and Displays
         </button>
         {% endif %}
         {% if not ap_enabled %}
         <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
           <button id="updateDisplay" type="button" class="btn btn-success btn-rounded">
-            Push Configuration
+            Update Display
           </button>
           <div class="small text-muted" style="font-size: 0.7rem; line-height: 1;">To configure Access Point or Switch, AP Configuration must be enabled.</div>
         </div>
@@ -258,6 +258,8 @@
         <button id="updateDisplay" type="button" class="btn btn-info btn-rounded">
           Update Display
         </button>
+        {%endif%}
+        {%if switch_enabled and ap_enabled %}
         <button id="clearSwitch" type="button" class="btn btn-warning btn-rounded">
           Clear Switch Config
         </button>
