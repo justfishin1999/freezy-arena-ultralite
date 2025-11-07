@@ -242,16 +242,17 @@ def push_config():
     stations = {}
     switch_entries = {}
 
-    for station in STATION_KEYS:
-        team = data.get(station, "").strip()
-        selected_teams[station] = team
-        if team:
-            if team not in team_config:
-                msg = f"Missing WPA key for team {team}"
-                log(msg)
-                return jsonify({"status": "error", "message": msg})
-            stations[station] = {"ssid": team, "wpaKey": team_config[team]}
-            switch_entries[station] = int(team)
+    if runtime_config.get("enable_ap"):
+        for station in STATION_KEYS:
+            team = data.get(station, "").strip()
+            selected_teams[station] = team
+            if team:
+                if team not in team_config:
+                    msg = f"Missing WPA key for team {team}"
+                    log(msg)
+                    return jsonify({"status": "error", "message": msg})
+                stations[station] = {"ssid": team, "wpaKey": team_config[team]}
+                switch_entries[station] = int(team)
 
     # now push according to enabled flags, no ping first
     try:

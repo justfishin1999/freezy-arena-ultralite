@@ -476,62 +476,73 @@ function renderMatchList(matches) {
 
   matches.forEach(m => {
     const li = document.createElement('div');
-    li.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
+    li.className = 'list-group-item d-flex justify-content-between align-items-start gap-2';
 
+    // format time if present
     const timeStr = m.start_time
-      ? new Date(m.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+      ? new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '-';
 
-    // left text
+    // left info block
     const info = document.createElement('div');
-    info.className = 'd-flex flex-column';
+    info.className = 'me-2 flex-grow-1';
     info.innerHTML = `
-      <span class="${m.done ? 'text-muted text-decoration-line-through' : ''}">
-        Match ${m.match_id} &mdash; ${timeStr}
-      </span>
-      <span class="small text-muted">
-        R: ${(m.red || []).join(', ') || '-'} &nbsp; B: ${(m.blue || []).join(', ') || '-'}
-      </span>
+      <div class="${m.done ? 'text-muted text-decoration-line-through' : ''}">
+        Match ${m.match_id} — ${timeStr}
+      </div>
+      <div class="small ${m.done ? 'text-muted' : ''}">
+        <strong class="text-danger">RED:</strong> ${(m.red || []).join(', ') || '-'}
+      </div>
+      <div class="small ${m.done ? 'text-muted' : ''}">
+        <strong class="text-primary">BLUE:</strong> ${(m.blue || []).join(', ') || '-'}
+      </div>
     `;
 
-    // load button
+    // load button on the right
     const btn = document.createElement('button');
     btn.className = 'btn btn-sm ' + (m.done ? 'btn-outline-secondary' : 'btn-outline-primary');
     btn.textContent = 'Load';
     btn.addEventListener('click', () => {
       loadMatchIntoStations(m);
-      // mark done in backend
+      // optional: mark as done in backend
       markMatchDone(m.match_id, true);
     });
 
     li.appendChild(info);
     li.appendChild(btn);
-
     matchList.appendChild(li);
   });
 }
 
-function loadMatchIntoStations(matchObj) {
-  // matchObj.red is array of 3, matchObj.blue is array of 3
+
+async function loadMatchIntoStations(matchObj) {
   const red = matchObj.red || [];
   const blue = matchObj.blue || [];
 
-  // your inputs:
-  // red1, red2, red3, blue1, blue2, blue3
-  const r1 = document.getElementById('red1');
-  const r2 = document.getElementById('red2');
-  const r3 = document.getElementById('red3');
-  const b1 = document.getElementById('blue1');
-  const b2 = document.getElementById('blue2');
-  const b3 = document.getElementById('blue3');
+  // fill inputs
+  document.getElementById('red1').value = red[0] || '';
+  document.getElementById('red2').value = red[1] || '';
+  document.getElementById('red3').value = red[2] || '';
+  document.getElementById('blue1').value = blue[0] || '';
+  document.getElementById('blue2').value = blue[1] || '';
+  document.getElementById('blue3').value = blue[2] || '';
 
-  if (r1) r1.value = red[0] || '';
-  if (r2) r2.value = red[1] || '';
-  if (r3) r3.value = red[2] || '';
-  if (b1) b1.value = blue[0] || '';
-  if (b2) b2.value = blue[1] || '';
-  if (b3) b3.value = blue[2] || '';
+  // push config automatically
+  try {
+    const payload = {};
+    $('#configForm').serializeArray().forEach(i => payload[i.name] = i.value);
+    await $.ajax({
+      url: '/push_config',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(payload)
+    });
+    console.log(`Match ${matchObj.match_id} loaded and pushed.`);
+  } catch (err) {
+    console.error('Failed to push config:', err);
+  }
 }
+
 
 async function markMatchDone(matchId, done) {
   try {
