@@ -110,53 +110,68 @@ $(function () {
         });
     }
 
-    // =========================
-    // PUSH CONFIG (main page)
-    // =========================
-    const $configForm = $('#configForm');
-    if ($configForm.length) {
-        $configForm.on('submit', function (e) {
-            e.preventDefault();
-            let payload = {};
-            $(this).serializeArray().forEach(i => payload[i.name] = i.value);
+// =========================
+// PUSH CONFIG (main page)
+// =========================
+const $configForm = $('#configForm');
+if ($configForm.length) {
+  $configForm.on('submit', function (e) {
+    e.preventDefault();
 
-            $.ajax({
-                url: '/push_config',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: async () => {
-                    await refreshLogDisplay();
-                },
-                error: async () => {
-                    await refreshLogDisplay();
-                }
-            });
-        });
+    //Block if timer running
+    if (window.timerRunning) {
+      alert('Timer is running. Stop the timer before pushing configuration.');
+      return;
     }
 
-    // =========================
-    // UPDATE DISPLAY ONLY (main page)
-    // =========================
-    const $updateDisplay = $('#updateDisplay');
-    if ($updateDisplay.length) {
-        $updateDisplay.on('click', function () {
-            let payload = {};
-            $('#configForm').serializeArray().forEach(i => payload[i.name] = i.value);
-            $.ajax({
-                url: '/update_display',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(payload),
-                success: async () => {
-                    await refreshLogDisplay();
-                },
-                error: async () => {
-                    await refreshLogDisplay();
-                }
-            });
-        });
+    let payload = {};
+    $(this).serializeArray().forEach(i => payload[i.name] = i.value);
+
+    $.ajax({
+      url: '/push_config',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(payload),
+      success: async () => {
+        await refreshLogDisplay();
+      },
+      error: async () => {
+        await refreshLogDisplay();
+      }
+    });
+  });
+}
+
+// =========================
+// UPDATE DISPLAY ONLY (main page)
+// =========================
+const $updateDisplay = $('#updateDisplay');
+if ($updateDisplay.length) {
+  $updateDisplay.on('click', function () {
+    //Block if timer running
+    if (window.timerRunning) {
+      alert('Timer is running. Stop the timer before updating display.');
+      return;
     }
+
+    let payload = {};
+    $('#configForm').serializeArray().forEach(i => payload[i.name] = i.value);
+
+    $.ajax({
+      url: '/update_display',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(payload),
+      success: async () => {
+        await refreshLogDisplay();
+      },
+      error: async () => {
+        await refreshLogDisplay();
+      }
+    });
+  });
+}
+
 
     // =========================
     // CLEAR SWITCH (main page)
@@ -294,15 +309,17 @@ function initUnifiedStream(retryDelayMs = 1500) {
     const es = new EventSource('/stream');
 
     es.addEventListener('timer', (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            const remaining = Math.floor(data.remaining || 0);
-            renderTimer(remaining);
-            // if you want to reflect “running” in UI, you can update a label here
-        } catch (e) {
-            console.error('Bad timer SSE data', e);
-        }
+    try {
+        const data = JSON.parse(event.data);
+        const remaining = Math.floor(data.remaining || 0);
+        renderTimer(remaining);
+
+        window.timerRunning = !!data.running;
+    } catch (e) {
+        console.error('Bad timer SSE data', e);
+    }
     });
+
 
     es.addEventListener('logs', (event) => {
         try {
@@ -541,16 +558,31 @@ function renderMatchList(matches) {
 
   matchList.innerHTML = '';
 
+  const timerRunning = !!window.timerRunning;
+
   matches.forEach(m => {
     const li = document.createElement('div');
     li.className = 'list-group-item d-flex justify-content-between align-items-start gap-2';
 
-    // format time if present
     const timeStr = m.start_time
       ? new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       : '-';
 
-    // left info block
+    const red = m.red || [];
+    const blue = m.blue || [];
+
+    const redLine = [
+      `<span class="text-danger fw-bold">RED - R1</span>: ${red[0] || ''}`,
+      `<span class="text-danger fw-bold">R2</span>: ${red[1] || ''}`,
+      `<span class="text-danger fw-bold">R3</span>: ${red[2] || ''}`
+    ].join(', ');
+
+    const blueLine = [
+      `<span class="text-primary fw-bold">BLUE - B1</span>: ${blue[0] || ''}`,
+      `<span class="text-primary fw-bold">B2</span>: ${blue[1] || ''}`,
+      `<span class="text-primary fw-bold">B3</span>: ${blue[2] || ''}`
+    ].join(', ');
+
     const info = document.createElement('div');
     info.className = 'me-2 flex-grow-1';
     info.innerHTML = `
@@ -558,20 +590,28 @@ function renderMatchList(matches) {
         Match ${m.match_id} — ${timeStr}
       </div>
       <div class="small ${m.done ? 'text-muted' : ''}">
-        <strong class="text-danger">RED:</strong> ${(m.red || []).join(', ') || '-'}
+        ${redLine}
       </div>
       <div class="small ${m.done ? 'text-muted' : ''}">
-        <strong class="text-primary">BLUE:</strong> ${(m.blue || []).join(', ') || '-'}
+        ${blueLine}
       </div>
     `;
 
-    // load button on the right
     const btn = document.createElement('button');
     btn.className = 'btn btn-sm ' + (m.done ? 'btn-outline-secondary' : 'btn-outline-primary');
     btn.textContent = 'Load';
+
+    if (timerRunning) {
+      btn.disabled = true;
+      btn.title = 'Cannot load match while timer is running';
+    }
+
     btn.addEventListener('click', () => {
+      if (window.timerRunning) {
+        alert('Timer is running. Stop the timer before loading a new match.');
+        return;
+      }
       loadMatchIntoStations(m);
-      // optional: mark as done in backend
       markMatchDone(m.match_id, true);
     });
 
@@ -580,6 +620,7 @@ function renderMatchList(matches) {
     matchList.appendChild(li);
   });
 }
+
 
 
 async function loadMatchIntoStations(matchObj) {
