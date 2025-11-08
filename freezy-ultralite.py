@@ -207,30 +207,46 @@ def generate_team_keys():
 
     data = request.get_json()
     teams = data.get('teams', [])
+
     output = io.StringIO()
     writer = csv.writer(output)
 
-    valid_teams = []
+    newly_generated = []
+    normalized_teams = []
 
     for team in teams:
         team = team.strip()
-        if team.isdigit():
+        if not team.isdigit():
+            continue  # skip invalid entries
+        normalized_teams.append(team)
+
+        if team not in team_config or not team_config[team]:
             key = generate_random_key()
             team_config[team] = key
-            writer.writerow([team, key])
-            valid_teams.append(team)
+            newly_generated.append(team)
 
+    # Save updated keys
     save_wpa_keys(team_config)
 
-    if valid_teams:
-        current = set(load_team_list())
-        current.update(valid_teams)
-        save_team_list(list(current))
+    # Also persist the team list (merge with existing)
+    if normalized_teams:
+        existing = set(load_team_list())
+        existing.update(normalized_teams)
+        save_team_list(list(existing))
 
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=wpa_keys.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
+    for team, key in sorted(team_config.items(), key=lambda x: int(x[0])):
+        writer.writerow([team, key])
+
+    csv_data = output.getvalue()
+    resp = make_response(csv_data)
+    resp.headers['Content-Disposition'] = 'attachment; filename=wpa_keys.csv'
+    resp.headers['Content-Type'] = 'text/csv'
+    resp.headers['X-WPA-Generated-Count'] = str(len(newly_generated))
+
+    log(f"WPA generate: {len(newly_generated)} new keys generated, {len(team_config)} total teams.")
+    return resp
+
+
 
 @app.route('/teams/all')
 def all_teams():
