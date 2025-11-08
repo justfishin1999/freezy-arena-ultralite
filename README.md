@@ -40,8 +40,8 @@ A super basic **Field Management System (FMS)** designed for **practice** and **
 - 🔑 **Generate WPA keys** and export to `.csv` for use with the offseason radio kiosk.
 - 🌐 **Configure Cisco switch** with VLANs and DHCP (like FMS).
 - 📡 **Configure Vivid Hosting VH-113 radio** (advanced FMS-style networking).
-- 🖥️ **Audience Display**
 - 🗓️ **Match Scheduling**
+- 🖥️ **Audience Display**
   Shows current match time and teams on the field.  
   Double click on the chroma or background to reverse red and blue.
 
