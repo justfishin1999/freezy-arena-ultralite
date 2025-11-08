@@ -6,3 +6,4 @@ build/
 dist/
 freezy-ultralite.spec
 match_schedule.json
+team_list.json
