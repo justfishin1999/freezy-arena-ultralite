@@ -5,3 +5,4 @@ match_schedule.json
 build/
 dist/
 freezy-ultralite.spec
+match_schedule.json
