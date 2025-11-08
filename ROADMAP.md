@@ -9,9 +9,9 @@
 |-------|-----------|--------|
 | **Fix Audio Issues** | Resolve buzzer not playing, volume control, cross-platform audio (Windows/macOS/Linux) | ⏳ In Progress |
 | **Add Open-Source Licensing** | Include `MIT` or `GPL-3.0` license + `LICENSE` file + contribution guidelines | ✅ Done |
-| **Preset Timer Buttons** | Quick-start buttons: `2:30` (Auto+Teleop), `1:30` (Teleop), `0:30` (Endgame), `Custom` | ⏳ Planned |
-| **Basic Match/Timeslot Scheduling** | Simple match queue: add teams, auto-advance, manual override | ⏳ Planned |
-| **Match Schedule Display** | Show upcoming matches on Audience/Wall display | ⏳ Planned |
+| **Preset Timer Buttons** | Quick-start buttons: `2:30` (Auto+Teleop), `1:30` (Teleop), `0:30` (Endgame), `Custom` | ✅ Done |
+| **Basic Match/Timeslot Scheduling** | Simple match queue: add teams, auto-advance, manual override | ⏳ In Progress |
+| **Match Schedule Display** | Show upcoming matches on Audience/Wall display | ✅ Done |
 
 ---
 
