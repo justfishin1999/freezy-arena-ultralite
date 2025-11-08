@@ -4,6 +4,8 @@ $(function () {
     checkWpaKeyStatus();
     refreshLogDisplay();
 
+    prefillTeamListFromServer();
+
     // set up timer: prefer SSE
     initUnifiedStream();
 
@@ -632,3 +634,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // initial load
   fetchScheduleAndRender();
 });
+
+async function prefillTeamListFromServer() {
+    const input = document.getElementById('teamListInput');
+    if (!input) return; // not on this page
+
+    try {
+        const res = await fetch('/teams/all', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.teams) && data.teams.length) {
+            input.value = data.teams.join(', ');
+        }
+    } catch (e) {
+        console.warn('Could not load team list from /teams/all', e);
+    }
+}
