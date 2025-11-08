@@ -1,4 +1,5 @@
 import csv
+import datetime
 import io
 import json
 import secrets
@@ -18,6 +19,7 @@ cli.show_server_banner = lambda *x: None
 app = Flask(__name__)
 
 CONFIG_FILE = "config.json"
+MATCH_SCHEDULE_FILE = "match_schedule.json"
 
 default_config = {
     "ap_ip": "10.0.100.2",
@@ -44,6 +46,19 @@ def load_config():
 def save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
+
+def load_match_schedule():
+    if os.path.exists(MATCH_SCHEDULE_FILE):
+        try:
+            with open(MATCH_SCHEDULE_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {"matches": [], "meta": {}}
+    return {"matches": [], "meta": {}}
+
+def save_match_schedule(data: dict):
+    with open(MATCH_SCHEDULE_FILE, "w") as f:
+        json.dump(data, f, indent=2)
 
 runtime_config = load_config()
 
@@ -85,6 +100,8 @@ buzzer_triggered = False
 logs = []
 
 audience_display_teams = {key: "" for key in STATION_KEYS}
+
+match_schedule = load_match_schedule()
 
 # flask routes
 @app.route('/')
@@ -225,16 +242,17 @@ def push_config():
     stations = {}
     switch_entries = {}
 
-    for station in STATION_KEYS:
-        team = data.get(station, "").strip()
-        selected_teams[station] = team
-        if team:
-            if team not in team_config:
-                msg = f"Missing WPA key for team {team}"
-                log(msg)
-                return jsonify({"status": "error", "message": msg})
-            stations[station] = {"ssid": team, "wpaKey": team_config[team]}
-            switch_entries[station] = int(team)
+    if runtime_config.get("enable_ap"):
+        for station in STATION_KEYS:
+            team = data.get(station, "").strip()
+            selected_teams[station] = team
+            if team:
+                if team not in team_config:
+                    msg = f"Missing WPA key for team {team}"
+                    log(msg)
+                    return jsonify({"status": "error", "message": msg})
+                stations[station] = {"ssid": team, "wpaKey": team_config[team]}
+                switch_entries[station] = int(team)
 
     # now push according to enabled flags, no ping first
     try:
@@ -561,6 +579,157 @@ def unified_stream():
     resp.headers['Cache-Control'] = 'no-cache'
     resp.headers['X-Accel-Buffering'] = 'no'
     return resp
+
+@app.route('/schedule')
+def schedule_page():
+    # operator page
+    return render_template('match_scheduling.html')
+
+@app.route('/schedule/audience')
+def schedule_audience_page():
+    # audience display
+    return render_template('match_scheduling_audience.html')
+
+@app.route('/schedule/data')
+def schedule_data():
+    # return current schedule JSON
+    return jsonify(match_schedule)
+
+@app.route('/schedule/generate', methods=['POST'])
+def schedule_generate():
+    global match_schedule
+    data = request.get_json(force=True)
+    teams = data.get("teams", [])
+    matches_per_team = int(data.get("matches_per_team", 2))
+    blocks = data.get("blocks", [])
+
+    if len(teams) < 6:
+        return jsonify({"status": "error", "message": "Need at least 6 teams"}), 400
+    if not blocks:
+        return jsonify({"status": "error", "message": "At least 1 time block is required"}), 400
+
+    # convert minutes -> seconds for generator
+    norm_blocks = []
+    for b in blocks:
+        gap_minutes = int(b.get("gap_minutes", 6))  # default 6 min
+        norm_blocks.append({
+            "start": b.get("start"),
+            "end": b.get("end"),
+            "gap_seconds": gap_minutes * 60
+        })
+
+    try:
+        matches = generate_schedule(teams, matches_per_team, norm_blocks)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+    match_schedule = {
+        "matches": matches,
+        "meta": {
+            "teams": teams,
+            "matches_per_team": matches_per_team,
+            "blocks": blocks  # store original (with minutes)
+        }
+    }
+    save_match_schedule(match_schedule)
+    log("Match schedule generated.")
+    return jsonify({"status": "ok", "schedule": match_schedule})
+
+
+@app.route('/schedule/clear', methods=['POST'])
+def schedule_clear():
+    global match_schedule
+    match_schedule = {"matches": [], "meta": {}}
+    save_match_schedule(match_schedule)
+    log("Match schedule cleared.")
+    return jsonify({"status": "ok"})
+
+def generate_schedule(teams, matches_per_team, blocks):
+    total_slots = len(teams) * matches_per_team
+    total_matches_needed = (total_slots + 5) // 6
+
+    # turn blocks into actual datetime ranges for today
+    today = datetime.date.today()
+    all_match_times = []
+    for block in blocks:
+        block_start_str = block.get("start")
+        block_end_str = block.get("end")
+        gap = int(block.get("gap_seconds", 300))
+        # parse times
+        bs_hour, bs_min = map(int, block_start_str.split(":"))
+        be_hour, be_min = map(int, block_end_str.split(":"))
+        start_dt = datetime.datetime(today.year, today.month, today.day, bs_hour, bs_min)
+        end_dt = datetime.datetime(today.year, today.month, today.day, be_hour, be_min)
+        # fill times
+        current = start_dt
+        while current <= end_dt and len(all_match_times) < total_matches_needed:
+            all_match_times.append(current)
+            current = current + datetime.timedelta(seconds=gap)
+
+    if len(all_match_times) < total_matches_needed:
+        raise Exception("Not enough time slots in your blocks to schedule all matches.")
+
+    # now build matches
+    import random
+    team_counts = {t: 0 for t in teams}
+    matches = []
+
+    for idx, start_dt in enumerate(all_match_times, start=1):
+        # pick 6 teams that have the lowest play count so far
+        # this keeps it fairly even
+        sorted_by_need = sorted(teams, key=lambda t: team_counts[t])
+        # shuffle within small window to randomize
+        random.shuffle(sorted_by_need)
+        chosen = sorted(sorted_by_need, key=lambda t: team_counts[t])[:6]
+
+        # split into red/blue
+        red = chosen[:3]
+        blue = chosen[3:]
+
+        # increment counts
+        for t in chosen:
+            team_counts[t] += 1
+
+        matches.append({
+            "match_id": idx,
+            "start_time": start_dt.isoformat(),
+            "red": red,
+            "blue": blue
+        })
+
+        total_slots_remaining = sum(max(0, matches_per_team - team_counts[t]) for t in teams)
+        if total_slots_remaining <= 0:
+            break
+
+    return matches
+
+@app.route('/schedule/print')
+def schedule_print():
+    data = load_match_schedule()
+    return render_template('match_scheduling_print.html', schedule=data)
+
+@app.route('/schedule/mark_done', methods=['POST'])
+def schedule_mark_done():
+    global match_schedule
+    data = request.get_json(force=True)
+    match_id = data.get("match_id")
+    done = bool(data.get("done", True))
+
+    if not match_id:
+        return jsonify({"status": "error", "message": "match_id required"}), 400
+
+    updated = False
+    for m in match_schedule.get("matches", []):
+        if m.get("match_id") == match_id:
+            m["done"] = done
+            updated = True
+            break
+
+    if updated:
+        save_match_schedule(match_schedule)
+        return jsonify({"status": "ok"})
+    else:
+        return jsonify({"status": "error", "message": "match not found"}), 404
 
     
 if __name__ == '__main__':

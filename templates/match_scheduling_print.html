@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Match Schedule</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    /* basic reset */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 1in; /* nice margins for PDF */
+      background: #fff;
+      color: #000;
+    }
+    h1, h2 {
+      margin: 0 0 0.5rem 0;
+    }
+    .meta {
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+    }
+    th {
+      background: #eee;
+    }
+    .alliance {
+      white-space: nowrap;
+    }
+
+    /* make it look nice when printed */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        margin: 0.5in;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="text-align:right; margin-bottom: 1rem;">
+    <button onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <h1>Match Schedule</h1>
+  {% if schedule.meta %}
+    <div class="meta">
+      {% if schedule.meta.teams %}
+        <div><strong>Teams:</strong> {{ schedule.meta.teams|join(', ') }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Time</th>
+      <th>Red</th>
+      <th>Blue</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in schedule.matches %}
+    <tr>
+      <td>{{ m.match_id }}</td>
+      <td>
+        {% if m.start_time %}
+          {% set ts = m.start_time|replace('T', ' ') %}
+          {{ ts[:16] }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td class="alliance">
+        {% if m.red %}{{ m.red|join(', ') }}{% else %}-{% endif %}
+      </td>
+      <td class="alliance">
+        {% if m.blue %}{{ m.blue|join(', ') }}{% else %}-{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</body>
+</html>

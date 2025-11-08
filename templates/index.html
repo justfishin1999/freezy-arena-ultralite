@@ -3,51 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <title>Freezy Arena Ultralite</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  >
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="shortcut icon" href="/static/img/favicon.ico">
   <link href="static/css/main.css" rel="stylesheet">
 </head>
 <body>
-  <!-- ========== NAVBAR with "Displays" Dropdown ========== -->
+  <!-- ========== NAVBAR ========== -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
       <img src="/static/img/FZUL-Icon.png" alt="Freezy Ultralite Icon" class="me-2 nav-icon">
       <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#mainNavbar"
-        aria-controls="mainNavbar"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+              data-bs-target="#mainNavbar" aria-controls="mainNavbar"
+              aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item dropdown">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
-              id="displaysDropdown"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Displays
-            </a>
+            <a class="nav-link dropdown-toggle" href="#" id="displaysDropdown"
+               role="button" data-bs-toggle="dropdown" aria-expanded="false">Displays</a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
               <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
               <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
+              <li><a class="dropdown-item" href="/schedule/audience" target="_blank">Match Schedule Display</a></li>
             </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/setup">Setup</a>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="setupDropdown"
+               role="button" data-bs-toggle="dropdown" aria-expanded="false">Setup</a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="setupDropdown">
+              <li><a class="dropdown-item" href="/setup">Arena Configuration</a></li>
+              <li><a class="dropdown-item" href="/schedule">Match Scheduling</a></li>
+            </ul>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="/">Field Control</a>
@@ -58,284 +47,242 @@
   </nav>
 
   <!-- ========== MAIN CONTAINER ========== -->
-<div class="container mb-4">
-  <br>
-<div class="row g-3 align-items-stretch">
+  <div class="container mb-5">
+    <br>
 
-  <!-- Station Assignments Card -->
-<div class="col-lg-8">
-<div class="card mb-3 shadow-sm h-100">
-  <div class="card-header">Station Assignments</div>
-  <div class="card-body">
-    <form id="configForm" class="row g-3 justify-content-center">
-
-      <!-- Row 1: Blue 1 ↔ Red 3 -->
-      <div class="col-12 d-flex justify-content-center align-items-stretch gap-5 station-row" data-row="1">
-        <!-- Blue Side -->
-        <div class="station-container blue-container">
-          <label for="blue1" class="form-label fw-semibold text-white">BLUE 1</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="blue1"
-              name="blue1"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-blue1"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          <div class="small text-white-50 mt-1">AP Status</div>
+    <!-- ==== THREE-CARD ROW: LEFT (3) | CENTER (6) | RIGHT (3) ==== -->
+    <div class="row g-4 align-items-stretch">
+      
+      <!-- LEFT: Match List (narrow) -->
+      <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Match List</span>
+            <button id="refreshSchedule" class="btn btn-sm btn-outline-secondary">Refresh</button>
           </div>
-          {%endif%}
+          <div class="card-body p-2" style="max-height: 500px; overflow-y: auto;">
+            <div id="matchList" class="list-group list-group-flush"><!-- filled by JS --></div>
+          </div>
         </div>
-        </div>
-
-        <!-- Red Side -->
-        <div class="station-container red-container">
-          <label for="red3" class="form-label fw-semibold text-white">RED 3</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="red3"
-              name="red3"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-red3"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          <div class="small text-white-50 mt-1">AP Status</div>
-        </div>
-        {%endif%}
-      </div>
-      </div>
       </div>
 
-      <!-- Row 2: Blue 2 ↔ Red 2 -->
-      <div class="col-12 d-flex justify-content-center align-items-stretch gap-5 station-row" data-row="2">
-        <div class="station-container blue-container">
-          <label for="blue2" class="form-label fw-semibold text-white">BLUE 2</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="blue2"
-              name="blue2"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-blue2"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          
-          <div class="small text-white-50 mt-1">AP Status</div>
-        </div>
-        {%endif%}
-        </div>
-        </div>
+      <!-- CENTER: Station Assignments (wider) -->
+      <div class="col-lg-6 col-md-12">
+        <div class="card shadow-sm h-100">
+          <div class="card-header">Station Assignments</div>
+          <div class="card-body">
+            <form id="configForm" class="row g-3 justify-content-center">
 
-        <div class="station-container red-container">
-          <label for="red2" class="form-label fw-semibold text-white">RED 2</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="red2"
-              name="red2"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-red2"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          
-          <div class="small text-white-50 mt-1">AP Status</div>
+              <!-- Row 1: Blue 1 to Red 3 -->
+              <div class="col-12 d-flex justify-content-center align-items-stretch gap-4 station-row" data-row="1">
+                <div class="station-container blue-container flex-fill">
+                  <label for="blue1" class="form-label fw-semibold text-white">BLUE 1</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="blue1" name="blue1" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-blue1"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="station-container red-container flex-fill">
+                  <label for="red3" class="form-label fw-semibold text-white">RED 3</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="red3" name="red3" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-red3"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 2: Blue 2 to Red 2 -->
+              <div class="col-12 d-flex justify-content-center align-items-stretch gap-4 station-row" data-row="2">
+                <div class="station-container blue-container flex-fill">
+                  <label for="blue2" class="form-label fw-semibold text-white">BLUE 2</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="blue2" name="blue2" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-blue2"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="station-container red-container flex-fill">
+                  <label for="red2" class="form-label fw-semibold text-white">RED 2</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="red2" name="red2" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-red2"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 3: Blue 3 to Red 1 -->
+              <div class="col-12 d-flex justify-content-center align-items-stretch gap-4 station-row" data-row="3">
+                <div class="station-container blue-container flex-fill">
+                  <label for="blue3" class="form-label fw-semibold text-white">BLUE 3</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="blue3" name="blue3" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-blue3"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <div class="station-container red-container flex-fill">
+                  <label for="red1" class="form-label fw-semibold text-white">RED 1</label>
+                  <div class="d-flex align-items-start justify-content-center gap-2">
+                    <input id="red1" name="red1" type="text"
+                           class="form-control form-control-sm text-center"
+                           style="width: 5.5rem;" placeholder="Team #">
+                    {% if ap_enabled %}
+                    <div class="ap-status-stack d-flex flex-column align-items-center">
+                      <span id="conn-red1"
+                            class="badge rounded-pill bg-light text-dark fw-semibold"
+                            style="min-width: 55px; font-family: monospace; font-size: 0.8rem;">
+                        N/A
+                      </span>
+                      <div class="small text-white-50 mt-1">AP Status</div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Buttons -->
+              <div class="col-12 d-flex flex-wrap justify-content-center gap-3 mt-4">
+                {% if ap_enabled %}
+                <button type="submit" class="btn btn-success btn-rounded">
+                  Update Network and Displays
+                </button>
+                {% endif %}
+                {% if not ap_enabled %}
+                <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
+                  <button id="updateDisplay" type="button" class="btn btn-success btn-rounded">
+                    Update Display
+                  </button>
+                  <div class="small text-muted" style="font-size: 0.7rem; line-height: 1;">
+                    To configure Access Point or Switch, AP Configuration must be enabled.
+                  </div>
+                </div>
+                {% else %}
+                <button id="updateDisplay" type="button" class="btn btn-info btn-rounded">
+                  Update Display
+                </button>
+                {% endif %}
+                {% if switch_enabled and ap_enabled %}
+                <button id="clearSwitch" type="button" class="btn btn-warning btn-rounded">
+                  Clear Switch Config
+                </button>
+                {% endif %}
+              </div>
+            </form>
+          </div>
         </div>
-        {%endif%}
-      </div>
-      </div>
       </div>
 
-      <!-- Row 3: Blue 3 ↔ Red 1 -->
-      <div class="col-12 d-flex justify-content-center align-items-stretch gap-5 station-row" data-row="3">
-        <div class="station-container blue-container">
-          <label for="blue3" class="form-label fw-semibold text-white">BLUE 3</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="blue3"
-              name="blue3"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-blue3"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          
-          <div class="small text-white-50 mt-1">AP Status</div>
-        </div>
-        {%endif%}
-        </div>
-        </div>
+      <!-- RIGHT: Timer (narrow) -->
+      <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Match Timer</span>
+            <span class="text-muted" style="font-size: 0.8rem;">seconds</span>
+          </div>
 
-        <div class="station-container red-container">
-          <label for="red1" class="form-label fw-semibold text-white">RED 1</label>
-          <div class="d-flex align-items-start justify-content-center gap-2">
-            <input
-              id="red1"
-              name="red1"
-              type="text"
-              class="form-control form-control-sm text-center"
-              style="width: 5rem;"
-              placeholder="Team #"
-            />
-            {% if ap_enabled %}
-            <div class="ap-status-stack d-flex flex-column align-items-center">
-            <span
-              id="conn-red1"
-              class="badge rounded-pill bg-light text-dark fw-semibold"
-              style="min-width: 55px; font-family: monospace; font-size: 0.8rem;"
-            >
-              N/A
-            </span>
-          
-          <div class="small text-white-50 mt-1">AP Status</div>
-        </div>
-        {%endif%}
-      </div>
-      </div>
-      </div>
+          <div class="card-body d-flex flex-column justify-content-center align-items-center">
+            <!-- Timer display -->
+            <div class="timer-display mb-3 text-center">
+              <span id="timer"
+                    class="display-4 fw-bold border rounded px-3 py-1 d-inline-block bg-light shadow-sm">
+                00:00
+              </span>
+            </div>
 
-      <!-- Buttons -->
-      <div class="col-12 d-flex flex-wrap justify-content-center gap-3 mt-4">
-        {% if ap_enabled %}
-        <button type="submit" class="btn btn-success btn-rounded">
-          Update Network and Displays
-        </button>
-        {% endif %}
-        {% if not ap_enabled %}
-        <div class="d-flex flex-column align-items-center" style="gap: 0.15rem;">
-          <button id="updateDisplay" type="button" class="btn btn-success btn-rounded">
-            Update Display
-          </button>
-          <div class="small text-muted" style="font-size: 0.7rem; line-height: 1;">To configure Access Point or Switch, AP Configuration must be enabled.</div>
+            <!-- Time input -->
+            <div class="d-flex flex-column align-items-center mb-2">
+              <label for="timerInput" class="form-label mb-1 small fw-semibold">Seconds</label>
+              <input id="timerInput" name="seconds" type="number"
+                     class="form-control form-control-sm text-center"
+                     min="1" max="9999" placeholder="135"
+                     style="width: 6rem;">
+            </div>
+
+            <!-- Start / Stop buttons -->
+            <div class="d-flex justify-content-center gap-2 mb-3">
+              <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">Start</button>
+              <button id="stopTimer" class="btn btn-outline-danger btn-sm btn-rounded" type="button">Stop</button>
+            </div>
+
+            <!-- Preset buttons -->
+            <div class="d-flex flex-column gap-1">
+              <button type="button" class="btn btn-outline-secondary btn-sm timer-preset w-100" data-seconds="15">Autonomous</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm timer-preset w-100" data-seconds="105">Teleoperated</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm timer-preset w-100" data-seconds="30">Endgame</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm timer-preset w-100" data-seconds="150">Full Match</button>
+            </div>
+
+            <!-- Event name -->
+            <div id="fc-event-name" class="text-center mt-3 small text-muted"></div>
+          </div>
         </div>
-        {% else %}
-        <button id="updateDisplay" type="button" class="btn btn-info btn-rounded">
-          Update Display
-        </button>
-        {%endif%}
-        {%if switch_enabled and ap_enabled %}
-        <button id="clearSwitch" type="button" class="btn btn-warning btn-rounded">
-          Clear Switch Config
-        </button>
-        {% endif %}
-        </div>
-        </form>
+      </div>
+    </div>
+
+    <!-- Logs (full width) -->
+    <div class="card mb-4 shadow-sm mt-4">
+      <div class="card-header">Logs</div>
+      <div class="card-body">
+        <div id="logDisplay" class="log-box"></div>
       </div>
     </div>
   </div>
-
-    <!-- RIGHT: Timer -->
-    <div class="col-lg-4">
-      <div class="card mb-3 shadow-sm h-100">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span>Match Timer</span>
-        <span class="text-muted" style="font-size: 0.8rem;">seconds</span>
-      </div>
-
-      <div class="card-body d-flex flex-column justify-content-center align-items-center">
-        <!-- Timer display -->
-        <div class="timer-display mb-3 text-center">
-          <span id="timer"
-            class="display-4 fw-bold border rounded px-4 py-2 d-inline-block bg-light shadow-sm">
-            00:00
-          </span>
-        </div>
-
-        <!-- Time input -->
-        <div class="d-flex flex-column align-items-center mb-2">
-          <label for="timerInput" class="form-label mb-1 small fw-semibold">Seconds</label>
-          <input
-            id="timerInput"
-            name="seconds"
-            type="number"
-            class="form-control form-control-sm text-center"
-            min="1"
-            max="9999"
-            placeholder="e.g. 135"
-            style="width: 7rem;"
-          />
-        </div>
-
-        <!-- Start / Stop buttons -->
-        <div class="d-flex justify-content-center gap-3 mb-3">
-          <button id="startTimer" class="btn btn-dark btn-sm btn-rounded" type="button">
-            Start
-          </button>
-          <button id="stopTimer" class="btn btn-outline-danger btn-sm btn-rounded" type="button">
-            Stop
-          </button>
-        </div>
-
-        <!-- Preset buttons -->
-        <div class="d-flex flex-wrap justify-content-center gap-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm timer-preset" data-seconds="60">1:00</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm timer-preset" data-seconds="120">2:00</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm timer-preset" data-seconds="180">3:00</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm timer-preset" data-seconds="150">Full Match</button>
-        </div>
-
-        <!-- Event name below -->
-        <div id="fc-event-name" class="text-center mt-3 small text-muted"></div>
-      </div>
-    </div>
-
-    </div>
-  </div>
-
-  <!-- Logs stays full width -->
-  <div class="card mb-4 shadow-sm mt-3">
-    <div class="card-header">Logs</div>
-    <div class="card-body">
-      <div id="logDisplay" class="log-box"></div>
-    </div>
-  </div>
-</div>
 
   <!-- ========== FOOTER ========== -->
   <footer class="text-center">
@@ -344,7 +291,7 @@
     </div>
   </footer>
 
-  <!-- Bootstrap & jQuery Scripts -->
+  <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.js"></script>

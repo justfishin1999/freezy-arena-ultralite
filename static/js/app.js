@@ -450,3 +450,120 @@ document.querySelectorAll('.timer-preset').forEach(btn => {
     }
   });
 });
+
+// ============================
+// MATCH LIST (left sidebar)
+// ============================
+async function fetchScheduleAndRender() {
+  try {
+    const res = await fetch('/schedule/data', { cache: 'no-store' });
+    const data = await res.json();
+    renderMatchList(data.matches || []);
+  } catch (err) {
+    console.error('Failed to load schedule:', err);
+    const matchList = document.getElementById('matchList');
+    if (matchList) {
+      matchList.innerHTML = '<div class="text-muted small p-2">No schedule found.</div>';
+    }
+  }
+}
+
+function renderMatchList(matches) {
+  const matchList = document.getElementById('matchList');
+  if (!matchList) return;
+
+  matchList.innerHTML = '';
+
+  matches.forEach(m => {
+    const li = document.createElement('div');
+    li.className = 'list-group-item d-flex justify-content-between align-items-start gap-2';
+
+    // format time if present
+    const timeStr = m.start_time
+      ? new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '-';
+
+    // left info block
+    const info = document.createElement('div');
+    info.className = 'me-2 flex-grow-1';
+    info.innerHTML = `
+      <div class="${m.done ? 'text-muted text-decoration-line-through' : ''}">
+        Match ${m.match_id} — ${timeStr}
+      </div>
+      <div class="small ${m.done ? 'text-muted' : ''}">
+        <strong class="text-danger">RED:</strong> ${(m.red || []).join(', ') || '-'}
+      </div>
+      <div class="small ${m.done ? 'text-muted' : ''}">
+        <strong class="text-primary">BLUE:</strong> ${(m.blue || []).join(', ') || '-'}
+      </div>
+    `;
+
+    // load button on the right
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm ' + (m.done ? 'btn-outline-secondary' : 'btn-outline-primary');
+    btn.textContent = 'Load';
+    btn.addEventListener('click', () => {
+      loadMatchIntoStations(m);
+      // optional: mark as done in backend
+      markMatchDone(m.match_id, true);
+    });
+
+    li.appendChild(info);
+    li.appendChild(btn);
+    matchList.appendChild(li);
+  });
+}
+
+
+async function loadMatchIntoStations(matchObj) {
+  const red = matchObj.red || [];
+  const blue = matchObj.blue || [];
+
+  // fill inputs
+  document.getElementById('red1').value = red[0] || '';
+  document.getElementById('red2').value = red[1] || '';
+  document.getElementById('red3').value = red[2] || '';
+  document.getElementById('blue1').value = blue[0] || '';
+  document.getElementById('blue2').value = blue[1] || '';
+  document.getElementById('blue3').value = blue[2] || '';
+
+  // push config automatically
+  try {
+    const payload = {};
+    $('#configForm').serializeArray().forEach(i => payload[i.name] = i.value);
+    await $.ajax({
+      url: '/push_config',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(payload)
+    });
+    console.log(`Match ${matchObj.match_id} loaded and pushed.`);
+  } catch (err) {
+    console.error('Failed to push config:', err);
+  }
+}
+
+
+async function markMatchDone(matchId, done) {
+  try {
+    await fetch('/schedule/mark_done', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ match_id: matchId, done })
+    });
+    // re-render so it goes gray/strikethrough
+    fetchScheduleAndRender();
+  } catch (err) {
+    console.error('Failed to mark match done:', err);
+  }
+}
+
+// hook refresh button
+document.addEventListener('DOMContentLoaded', () => {
+  const refBtn = document.getElementById('refreshSchedule');
+  if (refBtn) {
+    refBtn.addEventListener('click', fetchScheduleAndRender);
+  }
+  // initial load
+  fetchScheduleAndRender();
+});

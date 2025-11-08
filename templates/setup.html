@@ -12,48 +12,65 @@
 <body>
   <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-  <div class="container">
-    <img src="/static/img/FZUL-Icon.png" alt="Freezy Ultralite Icon" class="me-2 nav-icon">
-    <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#mainNavbar"
-      aria-controls="mainNavbar"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="mainNavbar">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item dropdown">
-          <a
-            class="nav-link dropdown-toggle"
-            href="#"
-            id="displaysDropdown"
-            role="button"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-          >
-            Displays
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
-            <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
-            <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
-          </ul>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/setup">Setup</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/">Field Control</a>
-        </li>        
-      </ul>
+    <div class="container">
+      <img src="/static/img/FZUL-Icon.png" alt="Freezy Ultralite Icon" class="me-2 nav-icon">
+      <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Displays
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
+              <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
+              <li><a class="dropdown-item" href="/schedule/audience" target="_blank">Match Schedule Display</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a
+              class="nav-link dropdown-toggle"
+              href="#"
+              id="displaysDropdown"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Setup
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
+              <li><a class="dropdown-item" href="/setup" >Arena Configuration</a></li>
+              <li><a class="dropdown-item" href="/schedule" >Match Scheduling</a></li>
+            </ul>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/">Field Control</a>
+          </li>
+        </ul>
+      </div>
     </div>
-  </div>
-</nav>
+  </nav>
+
+
   <br>
   <div class="container mb-4">
     <!-- Device / Connection Settings -->
