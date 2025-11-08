@@ -337,12 +337,14 @@ function initUnifiedStream(retryDelayMs = 1500) {
 function sseUpdateStationBadges(apData) {
     const stationKeys = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
     const allBadges = document.querySelectorAll('[id^="conn-"]');
+    const globalBadge = document.getElementById('ap-global-status');
+    const channelInfo = document.getElementById('ap-channel-info');
 
     function setBase(badge) {
         badge.className = 'badge rounded-pill px-2 py-1 text-center fw-semibold';
     }
 
-    // AP disabled in config.json
+    // === 1. AP DISABLED ===
     if (apData && apData.apEnabled === false) {
         allBadges.forEach(badge => {
             setBase(badge);
@@ -350,10 +352,16 @@ function sseUpdateStationBadges(apData) {
             badge.classList.add('bg-secondary', 'text-white');
             badge.title = 'AP configuration disabled in server config';
         });
+
+        if (globalBadge) {
+            globalBadge.textContent = 'AP: OFF';
+            globalBadge.className = 'badge bg-secondary text-white';
+        }
+        if (channelInfo) channelInfo.textContent = '';
         return;
     }
 
-    // AP enabled but error talking to it
+    // === 2. AP ERROR ===
     if (apData && apData.error) {
         allBadges.forEach(badge => {
             setBase(badge);
@@ -361,48 +369,105 @@ function sseUpdateStationBadges(apData) {
             badge.classList.add('bg-dark', 'text-white');
             badge.title = apData.error || 'AP unreachable';
         });
+
+        if (globalBadge) {
+            globalBadge.textContent = 'AP: ERR';
+            globalBadge.className = 'badge bg-danger text-white';
+        }
+        if (channelInfo) channelInfo.textContent = '';
         return;
     }
 
+    // === 3. AP DATA AVAILABLE ===
     const statuses = (apData && apData.stationStatuses) ? apData.stationStatuses : {};
+    const status = (apData && apData.status) || '';
+    const channel = apData?.channel || '-';
+    const bandwidth = apData?.channelBandwidth || '';
 
+    // Update global AP status
+    if (globalBadge) {
+        if (status === 'CONFIGURING') {
+            globalBadge.textContent = 'AP: CFG';
+            globalBadge.className = 'badge bg-warning text-dark';
+        } else if (status === 'ACTIVE') {
+            globalBadge.textContent = 'AP: ON';
+            globalBadge.className = 'badge bg-success text-white';
+        } else {
+            globalBadge.textContent = 'AP: ?';
+            globalBadge.className = 'badge bg-secondary text-white';
+        }
+    }
+
+    if (channelInfo && status === 'ACTIVE') {
+        channelInfo.textContent = `Ch ${channel} (${bandwidth})`;
+    } else {
+        if (channelInfo) channelInfo.textContent = '';
+    }
+
+    // === 4. PER-STATION LOGIC ===
     stationKeys.forEach(station => {
         const badge = document.getElementById(`conn-${station}`);
         if (!badge) return;
 
         const info = statuses[station] || {};
-        const ssid = info.ssid || 'ERR';
+        const ssid = info.ssid || '';
         const linked = !!info.isLinked;
+        const stationStatus = info.status || status; // fallback to global
 
-        // always start from base so we keep pill + alignment
-        setBase(badge);
-        badge.textContent = ssid;
+        // CONFIGURING: show "0"
+        if (stationStatus === 'CONFIGURING') {
+            setBase(badge);
+            badge.textContent = '0';
+            badge.classList.add('bg-configured', 'text-black');
+            badge.title = 'AP is applying new configuration…';
+            return;
+        }
 
-        if (info.ssid) {
-            const stationKey = station;                 // e.g. "red1", "blue2"
-            const inputEl    = document.getElementById(stationKey);
-            const teamNum    = inputEl ? (inputEl.value || '').trim() : '';
+        // ACTIVE: use assigned team number from input
+        if (stationStatus === 'ACTIVE') {
+            const inputEl = document.getElementById(station);
+            const assignedTeam = inputEl ? (inputEl.value || '').trim() : '';
 
-            // 2. Trim the SSID reported by the AP
-            const ssidTrimmed = (info.ssid || '').trim();
+            setBase(badge);
 
-            if (linked) {
-                // Fully connected
+            if (linked && ssid) {
+                badge.textContent = ssid;
                 badge.classList.add('bg-success', 'text-white');
-                badge.title =
-                    `Connected – ${info.signalDbm || 0} dBm` +
-                    (info.connectionQuality ? ` – ${info.connectionQuality}` : '');
-            } else if (ssidTrimmed === teamNum && teamNum !== '') {
-                // SSID matches the team number entered in the form, but not linked yet
+                badge.title = `Connected – ${info.signalDbm || 0} dBm` +
+                              (info.connectionQuality ? ` – ${info.connectionQuality}` : '');
+            } else if (assignedTeam && ssid.trim() === assignedTeam) {
+                badge.textContent = assignedTeam;
                 badge.classList.add('bg-configured', 'text-black');
                 badge.title = 'Configured – waiting for client to connect';
             } else {
-                // SSID present but does NOT match the assigned team
+                badge.textContent = ssid || '-';
+                badge.classList.add('bg-danger', 'text-white');
+                badge.title = 'Not connected';
+            }
+            return;
+        }
+
+        // Fallback (no status)
+        setBase(badge);
+        badge.textContent = ssid || '-';
+
+        if (info.ssid) {
+            const inputEl = document.getElementById(station);
+            const teamNum = inputEl ? (inputEl.value || '').trim() : '';
+            const ssidTrimmed = ssid.trim();
+
+            if (linked) {
+                badge.classList.add('bg-success', 'text-white');
+                badge.title = `Connected – ${info.signalDbm || 0} dBm` +
+                              (info.connectionQuality ? ` – ${info.connectionQuality}` : '');
+            } else if (ssidTrimmed === teamNum && teamNum !== '') {
+                badge.classList.add('bg-configured', 'text-black');
+                badge.title = 'Configured – waiting for client to connect';
+            } else {
                 badge.classList.add('bg-danger', 'text-white');
                 badge.title = 'Not connected';
             }
         } else {
-            // AP up, but no data for this station
             badge.classList.add('bg-dark', 'text-white');
             badge.title = 'AP enabled, but no data for this station';
         }

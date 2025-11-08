@@ -37,6 +37,17 @@ font-size: 1.2rem;
 .card-body {
 background-color: #fff;
 }
+#ap-global-status {
+  font-family: monospace;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: center;
+}
+
+#ap-channel-info {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
 .form-label {
 font-weight: 500;
 }
