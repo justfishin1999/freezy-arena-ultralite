@@ -20,6 +20,8 @@ app = Flask(__name__)
 
 CONFIG_FILE = "config.json"
 MATCH_SCHEDULE_FILE = "match_schedule.json"
+TEAMS_FILE = "team_list.json"
+
 
 default_config = {
     "ap_ip": "10.0.100.2",
@@ -59,6 +61,28 @@ def load_match_schedule():
 def save_match_schedule(data: dict):
     with open(MATCH_SCHEDULE_FILE, "w") as f:
         json.dump(data, f, indent=2)
+
+def load_team_list():
+    if os.path.exists(TEAMS_FILE):
+        try:
+            with open(TEAMS_FILE, "r") as f:
+                data = json.load(f)
+                # expect {"teams": [...]}
+                if isinstance(data, dict):
+                    return data.get("teams", [])
+                elif isinstance(data, list):
+                    # if someone manually made it a list
+                    return data
+        except Exception:
+            pass
+    return []
+
+def save_team_list(teams):
+    # normalize: unique, strings, sorted
+    cleaned = sorted({str(t).strip() for t in teams if str(t).strip()})
+    with open(TEAMS_FILE, "w") as f:
+        json.dump({"teams": cleaned}, f, indent=2)
+
 
 runtime_config = load_config()
 
@@ -151,18 +175,26 @@ def import_csv():
     if not file:
         return "No file uploaded", 400
     try:
+        teams_seen = set()
         reader = csv.reader(file.stream.read().decode('utf-8').splitlines())
         for row in reader:
             if len(row) == 2:
                 team, key = row[0].strip(), row[1].strip()
                 if team.isdigit():
                     team_config[team] = key
+                    teams_seen.add(team)
         save_wpa_keys(team_config)
+        if teams_seen:
+            # merge with existing list
+            current = set(load_team_list())
+            current.update(teams_seen)
+            save_team_list(list(current))
         log("CSV imported successfully.")
         return jsonify({"status": "success"})
     except Exception as e:
         log(f"CSV import error: {e}")
         return jsonify({"status": "error", "message": str(e)})
+
 
 def generate_random_key(length=8):
     alphabet = string.ascii_letters + string.digits
@@ -175,20 +207,51 @@ def generate_team_keys():
 
     data = request.get_json()
     teams = data.get('teams', [])
+
     output = io.StringIO()
     writer = csv.writer(output)
 
+    newly_generated = []
+    normalized_teams = []
+
     for team in teams:
         team = team.strip()
-        if team.isdigit():
+        if not team.isdigit():
+            continue  # skip invalid entries
+        normalized_teams.append(team)
+
+        if team not in team_config or not team_config[team]:
             key = generate_random_key()
             team_config[team] = key
-            writer.writerow([team, key])
+            newly_generated.append(team)
+
+    # Save updated keys
     save_wpa_keys(team_config)
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=wpa_keys.csv'
-    response.headers['Content-Type'] = 'text/csv'
-    return response
+
+    # Also persist the team list (merge with existing)
+    if normalized_teams:
+        existing = set(load_team_list())
+        existing.update(normalized_teams)
+        save_team_list(list(existing))
+
+    for team, key in sorted(team_config.items(), key=lambda x: int(x[0])):
+        writer.writerow([team, key])
+
+    csv_data = output.getvalue()
+    resp = make_response(csv_data)
+    resp.headers['Content-Disposition'] = 'attachment; filename=wpa_keys.csv'
+    resp.headers['Content-Type'] = 'text/csv'
+    resp.headers['X-WPA-Generated-Count'] = str(len(newly_generated))
+
+    log(f"WPA generate: {len(newly_generated)} new keys generated, {len(team_config)} total teams.")
+    return resp
+
+
+
+@app.route('/teams/all')
+def all_teams():
+    teams = load_team_list()
+    return jsonify({"teams": teams})
 
 @app.route('/clear_wpa_keys', methods=['POST'])
 def clear_wpa_keys():
@@ -592,7 +655,18 @@ def schedule_audience_page():
 
 @app.route('/schedule/data')
 def schedule_data():
-    # return current schedule JSON
+    global match_schedule
+    if not match_schedule.get("matches") and not match_schedule.get("meta", {}).get("teams"):
+        # no schedule yet, but maybe we have teams
+        stored_teams = load_team_list()
+        if stored_teams:
+            # give frontend something to prefill
+            return jsonify({
+                "matches": [],
+                "meta": {
+                    "teams": stored_teams
+                }
+            })
     return jsonify(match_schedule)
 
 @app.route('/schedule/generate', methods=['POST'])
@@ -631,6 +705,7 @@ def schedule_generate():
             "blocks": blocks  # store original (with minutes)
         }
     }
+    save_team_list(teams)
     save_match_schedule(match_schedule)
     log("Match schedule generated.")
     return jsonify({"status": "ok", "schedule": match_schedule})

@@ -236,3 +236,18 @@ padding: 0.35rem 0.5rem;
   text-align: center;
   white-space: nowrap;
 }
+/* Subtle width rebalance for main layout */
+@media (min-width: 992px) {
+  .custom-layout .left-col {
+    flex: 0 0 30%;   /* default col-lg-3 ≈ 25%, slightly wider */
+    max-width: 30%;
+  }
+  .custom-layout .middle-col {
+    flex: 0 0 45%;   /* default col-lg-6 ≈ 50%, slightly narrower */
+    max-width: 45%;
+  }
+  .custom-layout .right-col {
+    flex: 0 0 25%;   /* keep visually balanced */
+    max-width: 25%;
+  }
+}

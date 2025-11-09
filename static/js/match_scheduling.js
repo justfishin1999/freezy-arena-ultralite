@@ -70,13 +70,18 @@ async function loadSchedule() {
     const data = await res.json();
     renderScheduleTable(data.matches || []);
 
-    // repopulate form
-    if (data.meta && data.meta.teams) {
+    let teamsFilled = false;
+
+    // repopulate form from schedule
+    if (data.meta && Array.isArray(data.meta.teams) && data.meta.teams.length) {
       $('#teamsInput').val(data.meta.teams.join(', '));
+      teamsFilled = true;
     }
+
     if (data.meta && data.meta.matches_per_team) {
       $('#matchesPerTeam').val(data.meta.matches_per_team);
     }
+
     if (data.meta && Array.isArray(data.meta.blocks) && data.meta.blocks.length) {
       const bc = $('#blocksContainer');
       bc.empty();
@@ -90,6 +95,22 @@ async function loadSchedule() {
         `);
       });
     }
+
+    // 🔁 fallback: no teams in schedule, try the shared team list
+    if (!teamsFilled) {
+      try {
+        const teamsRes = await fetch('/teams/all', { cache: 'no-store' });
+        if (teamsRes.ok) {
+          const teamsData = await teamsRes.json();
+          if (Array.isArray(teamsData.teams) && teamsData.teams.length) {
+            $('#teamsInput').val(teamsData.teams.join(', '));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load teams from /teams/all', e);
+      }
+    }
+
   } catch (err) {
     console.error('Failed to load schedule', err);
   }
@@ -99,7 +120,9 @@ function renderScheduleTable(matches) {
   const tbody = $('#scheduleTable tbody');
   tbody.empty();
   matches.forEach(m => {
-    const timeStr = m.start_time ? new Date(m.start_time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
+    const timeStr = m.start_time
+      ? new Date(m.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '';
     tbody.append(`
       <tr>
         <td>${m.match_id}</td>
