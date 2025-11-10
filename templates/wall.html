@@ -5,22 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Freezy Arena Ultralite - Wall</title>
   <link rel="shortcut icon" href="/static/img/favicon.ico">
-  <link href="static/css/audience.css" rel="stylesheet">
+  <link href="/static/css/audience.css" rel="stylesheet">
+  <link href="/static/css/match_scheduling.css" rel="stylesheet">
+  <link href="/static/css/wall.css" rel="stylesheet">
 </head>
 <body id="wall-disp-body">
   <div id="alert">Timer Ended!</div>
-<div id="bottom-container">
-  <div id="teams" class="teams-container">
-    <div id="red-teams" class="team-group"></div>
-    <div id="center-timer">
-      <div id="timer" class="timer-display">00:00</div>
-      <div id="event-name" class="event-name"></div>
+
+  <div id="top-container">
+    <div id="teams" class="teams-container">
+      <div id="red-teams" class="team-group"></div>
+      <div id="center-timer">
+        <div id="timer" class="timer-display">00:00</div>
+        <div id="event-name" class="event-name"></div>
+      </div>
+      <div id="blue-teams" class="team-group"></div>
     </div>
-    <div id="blue-teams" class="team-group"></div>
   </div>
+
+  <div id="schedule-shell">
+    <div class="audience-wrapper">
+      <h1 class="audience-title">Upcoming Matches</h1>
+      <div class="audience-scroll-container">
+        <div id="audienceList" class="audience-list"></div>
+      </div>
+    </div>
   </div>
+
   <audio id="buzzer" src="/static/audio/end.wav" preload="auto"></audio>
   <audio id="unlocker" preload="auto"></audio>
+
   <script src="/static/js/audience.js"></script>
+  <script src="/static/js/match_scheduling_audience.js"></script>
 </body>
 </html>

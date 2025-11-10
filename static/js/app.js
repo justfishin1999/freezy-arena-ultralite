@@ -337,14 +337,19 @@ function initUnifiedStream(retryDelayMs = 1500) {
     });
 
     es.addEventListener('apstatus', (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            window.currentApData = data;
-            sseUpdateStationBadges(data);
-        } catch (e) {
-            console.error('Bad apstatus SSE data', e);
-        }
+    try {
+        const data = JSON.parse(event.data);
+        window.currentApData = data;
+        sseUpdateStationBadges(data);
+
+        const ready = isAllStationsLinked(data);
+        updateFieldReadyBanner(ready);
+
+    } catch (e) {
+        console.error('Bad apstatus SSE data', e);
+    }
     });
+
 
     es.onerror = () => {
         console.warn('SSE connection lost, retrying...');
@@ -691,3 +696,30 @@ async function prefillTeamListFromServer() {
         console.warn('Could not load team list from /teams/all', e);
     }
 }
+
+const WALL_STATIONS = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
+
+function isAllStationsLinked(apData) {
+  if (!apData || !apData.stationStatuses) return false;
+  const statuses = apData.stationStatuses;
+  return WALL_STATIONS.every(k => {
+    const s = statuses[k];
+    return s && s.isLinked && s.ssid && s.ssid.trim() !== '';
+  });
+}
+
+function updateFieldReadyBanner(ready) {
+  const el = document.getElementById('field-ready');
+  if (!el) return;
+
+  el.classList.remove('field-ready', 'field-not-ready');
+
+  if (ready) {
+    el.textContent = 'FIELD READY';
+    el.classList.add('field-ready');
+  } else {
+    el.textContent = 'FIELD NOT READY';
+    el.classList.add('field-not-ready');
+  }
+}
+

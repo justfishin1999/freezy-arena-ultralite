@@ -251,3 +251,30 @@ padding: 0.35rem 0.5rem;
     max-width: 25%;
   }
 }
+
+.field-status {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35rem;
+  min-height: 1.4rem;
+}
+
+.field-not-ready {
+  color: #ab0000; /* red */
+  text-shadow: 0 0 4px rgba(0,0,0,0.4);
+}
+
+.field-ready {
+  color: #006a29;
+  text-shadow: 0 0 8px rgba(0,0,0,0.6);
+  animation: fieldReadyFlash 1s ease-in-out infinite;
+}
+
+@keyframes fieldReadyFlash {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+
