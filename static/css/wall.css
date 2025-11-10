@@ -40,3 +40,12 @@
   height: calc(100vh - 210px); 
   overflow: hidden;
 }
+
+.event-name-wall {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+}

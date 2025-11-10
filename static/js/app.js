@@ -697,16 +697,27 @@ async function prefillTeamListFromServer() {
     }
 }
 
-const WALL_STATIONS = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
-
 function isAllStationsLinked(apData) {
   if (!apData || !apData.stationStatuses) return false;
+
   const statuses = apData.stationStatuses;
-  return WALL_STATIONS.every(k => {
+  const WALL_STATIONS = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
+
+  // Filter out stations that are blank or not configured
+  const configuredStations = WALL_STATIONS.filter(k => {
     const s = statuses[k];
-    return s && s.isLinked && s.ssid && s.ssid.trim() !== '';
+    return s && s.ssid && s.ssid.trim() !== '';  // only count configured ones
+  });
+
+  if (configuredStations.length === 0) return false; // nothing configured, not ready
+
+  // If all configured stations are linked, we’re good
+  return configuredStations.every(k => {
+    const s = statuses[k];
+    return s.isLinked === true;
   });
 }
+
 
 function updateFieldReadyBanner(ready) {
   const el = document.getElementById('field-ready');
