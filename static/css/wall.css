@@ -1,0 +1,51 @@
+#wall-disp-body {
+  background: #666;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+#top-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-top: 0.25rem;
+}
+
+#schedule-shell {
+  position: absolute;
+  top: 150px;          
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 1rem 1rem;
+  overflow: hidden;
+}
+
+
+#schedule-shell .audience-wrapper {
+  width: min(1100px, 100%);
+}
+
+#schedule-shell .audience-title {
+  margin-top: 0;
+}
+
+#schedule-shell .audience-scroll-container {
+  height: calc(100vh - 210px); 
+  overflow: hidden;
+}
+
+.event-name-wall {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #ffffff;
+  white-space: nowrap;
+}

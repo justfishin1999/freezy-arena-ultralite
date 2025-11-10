@@ -3,43 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <title>Freezy Arena Ultralite - Setup</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="shortcut icon" href="/static/img/favicon.ico">
-  <link href="static/css/main.css" rel="stylesheet">
+  <link href="/static/css/main.css" rel="stylesheet">
 </head>
 <body>
   <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
     <div class="container">
       <img src="/static/img/FZUL-Icon.png" alt="Freezy Ultralite Icon" class="me-2 nav-icon">
       <a class="navbar-brand" href="/">Freezy Arena <i>Ultralite</i></a>
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#mainNavbar"
-        aria-controls="mainNavbar"
-        aria-expanded="false"
-        aria-label="Toggle navigation"
-      >
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item dropdown">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
-              id="displaysDropdown"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Displays
-            </a>
+            <a class="nav-link dropdown-toggle" href="#" id="displaysDropdown" data-bs-toggle="dropdown">Displays</a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
               <li><a class="dropdown-item" href="/audience" target="_blank">Audience Display</a></li>
               <li><a class="dropdown-item" href="/wall" target="_blank">Wall Display</a></li>
@@ -47,166 +28,166 @@
             </ul>
           </li>
           <li class="nav-item dropdown">
-            <a
-              class="nav-link dropdown-toggle"
-              href="#"
-              id="displaysDropdown"
-              role="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Setup
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="displaysDropdown">
-              <li><a class="dropdown-item" href="/setup" >Arena Configuration</a></li>
-              <li><a class="dropdown-item" href="/schedule" >Match Scheduling</a></li>
+            <a class="nav-link dropdown-toggle" href="#" id="setupDropdown" data-bs-toggle="dropdown">Setup</a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="setupDropdown">
+              <li><a class="dropdown-item" href="/setup">Arena Configuration</a></li>
+              <li><a class="dropdown-item" href="/schedule">Match Scheduling</a></li>
             </ul>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="/">Field Control</a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="/">Field Control</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
+  <!-- MAIN -->
+  <main class="py-4">
+    <div class="container mb-4">
 
-  <br>
-  <div class="container mb-4">
-    <!-- Device / Connection Settings -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Connection & Device Settings</div>
-      <div class="card-body">
-        <form method="POST" action="/setup" class="row g-3">
-          <div class="col-md-4">
-            <label for="ap_ip" class="form-label">AP IP Address</label>
-            <input type="text" class="form-control" id="ap_ip" name="ap_ip" value="{{ cfg.ap_ip }}">
-            <!-- Dynamic hyperlink below the input -->
-            <div class="mt-2">
-                <a id="ap_link" href="#" target="_blank" class="btn btn-outline-primary btn-sm" 
-                  style="display: none;">Open AP Dashboard</a>
+      <!-- ====== CONFIGURATION CARDS ====== -->
+      <form method="POST" action="/setup">
+        <div class="row g-4 mb-4">
+          <!-- Connection & Configuration Settings -->
+          <div class="col-lg-8 col-md-12">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header fw-semibold">Connection & Configuration Settings</div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label for="ap_ip" class="form-label">AP IP Address</label>
+                    <input type="text" class="form-control" id="ap_ip" name="ap_ip" value="{{ cfg.ap_ip }}">
+                    <div class="mt-2">
+                      <a id="ap_link" href="#" target="_blank" class="btn btn-outline-primary btn-sm" style="display: none;">Open AP Dashboard</a>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <label for="switch_ip" class="form-label">Switch IP Address</label>
+                    <input type="text" class="form-control" id="switch_ip" name="switch_ip" value="{{ cfg.switch_ip }}">
+                  </div>
+                  <div class="col-md-4">
+                    <label for="switch_password" class="form-label">Switch Password</label>
+                    <input type="text" class="form-control" id="switch_password" name="switch_password" value="{{ cfg.switch_password }}">
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="enable_ap" name="enable_ap" {% if cfg.enable_ap %}checked{% endif %}>
+                      <label class="form-check-label" for="enable_ap">Enable AP Configuration</label>
+                    </div>
+                    <p class="text-muted small mb-0">AP configuration can be enabled without switch configuration.</p>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="enable_switch" name="enable_switch" {% if cfg.enable_switch %}checked{% endif %}>
+                      <label class="form-check-label" for="enable_switch">Enable Switch Configuration</label>
+                    </div>
+                    <p class="text-muted small mb-0">Switch setup is optional but depends on AP enablement.</p>
+                  </div>
+                  <div class="d-grid mt-3">
+                  <button type="submit" class="btn btn-primary btn-sm">Save Settings</button>
+                </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="col-md-4">
-            <label for="switch_ip" class="form-label">Switch IP Address</label>
-            <input type="text" class="form-control" id="switch_ip" name="switch_ip" value="{{ cfg.switch_ip }}">
-          </div>
-          <div class="col-md-4">
-            <label for="switch_password" class="form-label">Switch Password</label>
-            <input type="text" class="form-control" id="switch_password" name="switch_password" value="{{ cfg.switch_password }}">
-          </div>
 
-          <div class="col-md-6 form-check mt-3">
-            <input class="form-check-input" type="checkbox" id="enable_ap" name="enable_ap" {% if cfg.enable_ap %}checked{% endif %}>
-            <label class="form-check-label" for="enable_ap">
-              Enable AP Configuration
-            </label>
-            <p><i>AP Configuration can be enabled without Switch Configuration.</i></p>
+          <!-- Event Details -->
+          <div class="col-lg-4 col-md-12">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header fw-semibold">Event Details</div>
+              <div class="card-body d-flex flex-column justify-content-between">
+                <div>
+                  <label for="event_name" class="form-label">Event Name</label>
+                  <input
+                    type="text"
+                    id="event_name"
+                    name="event_name"
+                    class="form-control form-control-sm mb-2"
+                    value="{{ cfg.event_name or '' }}"
+                    placeholder="Super Cool Event"
+                    maxlength="30">
+                  <div class="form-text small">Shown on audience and wall displays.</div>
+                </div>
+                <div class="d-grid mt-3">
+                  <button type="submit" class="btn btn-primary btn-sm">Save Settings</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="col-md-6 form-check mt-3">
-            <input class="form-check-input" type="checkbox" id="enable_switch" name="enable_switch" {% if cfg.enable_switch %}checked{% endif %}>
-            <label class="form-check-label" for="enable_switch">
-              Enable Switch Configuration
-            </label>
-            <p><i>Switch Configuration will remain hidden unless AP Configuration is enabled.</i></p>
-          </div>
-          <hr>
-          <div class="mb-3">
-            <label for="event_name" class="form-label">Event Name</label>
-            <input
-              type="text"
-              id="event_name"
-              name="event_name"
-              class="form-control"
-              value="{{ cfg.event_name or '' }}"
-              placeholder="Super Cool Event"
-              maxlength="30"
-            >
-            <div class="form-text">This will show on the audience and wall displays.</div>
-          </div>
-
-          <div class="col-12">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-
-    <!-- Import WPA Key CSV -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Import WPA Key CSV</div>
-      <div class="card-body">
-        <form id="csvForm" enctype="multipart/form-data" class="row g-2 align-items-end">
-          <div class="col-md-10">
-            <label for="csvFile" class="form-label">Choose CSV File:</label>
-            <input
-              id="csvFile"
-              class="form-control"
-              type="file"
-              name="file"
-              accept=".csv"
-              required
-            />
-          </div>
-          <div class="col-md-2 d-grid">
-            <button class="btn btn-primary" type="submit">
-              Import
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Generate WPA Keys -->
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Generate WPA Keys</div>
-      <div class="card-body">
-        <div class="mb-2">
-          <label for="teamListInput" class="form-label">Team List (comma-separated):</label>
-          <input
-            id="teamListInput"
-            type="text"
-            class="form-control"
-            placeholder="e.g. 2052, 2847, 3058"
-          />
         </div>
-        <div class="d-grid">
-          <button id="generateKeys" class="btn btn-secondary" type="button">
-            Generate CSV
-          </button>
-        </div>
-        <div class="mt-3 d-flex align-items-center">
-          <div
-            id="wpaStatusBadge"
-            class="status-circle bg-secondary"
-            title="WPA Keys Status"
-          >
-            ?
+      </form>
+
+      <!-- ====== WPA KEY MANAGEMENT ====== -->
+      <div class="row g-4 mb-4">
+        <!-- Import -->
+        <div class="col-lg-3 col-md-6">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Import WPA Key CSV</div>
+            <div class="card-body">
+              <p class="text-muted small mb-3">Want to re-use WPA keys from a prior event? Import them here.</p>
+              <form id="csvForm" enctype="multipart/form-data">
+                <div class="mb-2">
+                  <label for="csvFile" class="form-label mb-1">Choose CSV File:</label>
+                  <input id="csvFile" class="form-control form-control-sm" type="file" name="file" accept=".csv" required>
+                </div>
+                <div class="d-grid">
+                  <button class="btn btn-primary btn-sm mt-2" type="submit">Import</button>
+                </div>
+              </form>
+            </div>
           </div>
-          <span class="fw-medium">WPA Keys Imported/Generated</span>
+        </div>
+
+        <!-- Generate -->
+        <div class="col-lg-6 col-md-12">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Generate WPA Keys</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label for="teamListInput" class="form-label mb-1">Team List (comma-separated):</label>
+                <textarea id="teamListInput" class="form-control form-control-sm" rows="3" placeholder="e.g. 2052, 2847, 3058, 4728, 5172, 7226, ..."></textarea>
+              </div>
+              <div class="d-grid">
+                <button id="generateKeys" class="btn btn-secondary btn-sm" type="button">Generate CSV</button>
+              </div>
+              <div class="mt-3 d-flex align-items-center gap-2">
+                <div id="wpaStatusBadge" class="status-circle bg-secondary" title="WPA Keys Status">?</div>
+                <span class="fw-medium small">WPA Keys Imported/Generated</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manage -->
+        <div class="col-lg-3 col-md-6">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Manage WPA Keys</div>
+            <div class="card-body d-flex flex-column justify-content-center">
+              <p class="text-muted small mb-3">Need to erase your WPA keys and start over? Click below.</p>
+              <div class="d-grid">
+                <button id="clearAllWpaBtn" type="button" class="btn btn-danger btn-sm">Remove ALL WPA Keys</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <!-- Manage WPA Keys -->
-<div class="card mb-4 shadow-sm">
-  <div class="card-header">Manage WPA Keys</div>
-  <div class="card-body">
-    <div class="d-grid d-md-block">
-      <button id="clearAllWpaBtn" type="button" class="btn btn-danger">
-        Remove ALL WPA Keys
-      </button>
-    </div>
-  </div>
-</div>
 
-  </div>
+    </div>
+  </main>
 
-  <footer class="text-center">
+  <!-- FOOTER -->
+  <footer class="text-center py-3">
     <div class="container">
-      <span class="text-muted">© <a href="https://github.com/justfishin1999">github.com/justfishin1999</a> - 2025 - Freezy Arena Ultralite - v2025.0.5</span>
+      <span class="text-muted">
+        © <a href="https://github.com/justfishin1999">github.com/justfishin1999</a> - 2025 - Freezy Arena Ultralite - v2025.0.5
+      </span>
     </div>
   </footer>
+
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/static/js/app.js"></script>

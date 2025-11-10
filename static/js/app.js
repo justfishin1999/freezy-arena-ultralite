@@ -337,14 +337,19 @@ function initUnifiedStream(retryDelayMs = 1500) {
     });
 
     es.addEventListener('apstatus', (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            window.currentApData = data;
-            sseUpdateStationBadges(data);
-        } catch (e) {
-            console.error('Bad apstatus SSE data', e);
-        }
+    try {
+        const data = JSON.parse(event.data);
+        window.currentApData = data;
+        sseUpdateStationBadges(data);
+
+        const ready = isAllStationsLinked(data);
+        updateFieldReadyBanner(ready);
+
+    } catch (e) {
+        console.error('Bad apstatus SSE data', e);
+    }
     });
+
 
     es.onerror = () => {
         console.warn('SSE connection lost, retrying...');
@@ -691,3 +696,41 @@ async function prefillTeamListFromServer() {
         console.warn('Could not load team list from /teams/all', e);
     }
 }
+
+function isAllStationsLinked(apData) {
+  if (!apData || !apData.stationStatuses) return false;
+
+  const statuses = apData.stationStatuses;
+  const WALL_STATIONS = ['red1', 'red2', 'red3', 'blue1', 'blue2', 'blue3'];
+
+  // Filter out stations that are blank or not configured
+  const configuredStations = WALL_STATIONS.filter(k => {
+    const s = statuses[k];
+    return s && s.ssid && s.ssid.trim() !== '';  // only count configured ones
+  });
+
+  if (configuredStations.length === 0) return false; // nothing configured, not ready
+
+  // If all configured stations are linked, we’re good
+  return configuredStations.every(k => {
+    const s = statuses[k];
+    return s.isLinked === true;
+  });
+}
+
+
+function updateFieldReadyBanner(ready) {
+  const el = document.getElementById('field-ready');
+  if (!el) return;
+
+  el.classList.remove('field-ready', 'field-not-ready');
+
+  if (ready) {
+    el.textContent = 'FIELD READY';
+    el.classList.add('field-ready');
+  } else {
+    el.textContent = 'FIELD NOT READY';
+    el.classList.add('field-not-ready');
+  }
+}
+

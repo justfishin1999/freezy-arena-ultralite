@@ -244,6 +244,9 @@
 
           <div class="card-body d-flex flex-column justify-content-center align-items-center">
             <!-- Timer display -->
+             {%if ap_enabled%}
+            <div id="field-ready" class="field-status field-not-ready">FIELD READY</div>
+            {%endif%}
             <div class="timer-display mb-3 text-center">
               <span id="timer"
                     class="display-4 fw-bold border rounded px-3 py-1 d-inline-block bg-light shadow-sm">
